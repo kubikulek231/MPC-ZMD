@@ -26,7 +26,7 @@ public class JFXMain extends Application {
         mainScene = new Scene(root); // Vytvoření scény z fxml souboru
         primaryStage.setScene(mainScene); // Vložení scény do okna
 
-        primaryStage.setTitle("JPEG: Prijmeni VUTID"); // Titulek okna, nastavte svoje
+        primaryStage.setTitle("JPEG: Lepik 239122"); // Titulek okna, nastavte svoje
         primaryStage.getIcons().add(FileBindings.favicon); // Přidání ikony aplikace
         primaryStage.show(); // Zobrazí rozhraní
 

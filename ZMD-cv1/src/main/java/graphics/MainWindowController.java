@@ -1,5 +1,6 @@
 package graphics;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -26,8 +27,12 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import jpeg.ProcessImage;
 
 public class MainWindowController implements Initializable {
+    private ProcessImage process;
+
+    
     @FXML
     Button buttonInverseQuantize;
     @FXML
@@ -94,6 +99,10 @@ public class MainWindowController implements Initializable {
 
         // Propojení slideru s textovým polem
         quantizeQualityField.textProperty().bindBidirectional(quantizeQuality.valueProperty(), NumberFormat.getIntegerInstance());
+
+        String defaultPath = "Images/Lenna.png";
+        BufferedImage defaultImage = Dialogs.loadImageFromPath(defaultPath);
+        this.process = new ProcessImage(defaultImage);
 
     }
 
