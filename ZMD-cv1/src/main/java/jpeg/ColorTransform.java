@@ -1,8 +1,8 @@
 package jpeg;
 
 /**
- * Třída, která bude obsahovat všechnu práci s obrázkem.
+ * T??da, kter? bude obsahovat v?echnu pr?ci s obr?zkem.
  */
-public class Process {
+public class ColorTransform {
 
 }
