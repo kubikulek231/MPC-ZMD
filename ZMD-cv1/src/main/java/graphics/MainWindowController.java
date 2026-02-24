@@ -9,10 +9,11 @@ import java.util.ResourceBundle;
 
 import javax.imageio.ImageIO;
 
-import Core.FileBindings;
-import Core.Helper;
+import core.FileBindings;
+import core.Helper;
 import enums.SamplingType;
 import enums.TransformType;
+import imageProcessing.ProcessImage;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -27,7 +28,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import jpeg.ProcessImage;
 
 public class MainWindowController implements Initializable {
     private ProcessImage process;
@@ -100,10 +100,8 @@ public class MainWindowController implements Initializable {
         // Propojení slideru s textovým polem
         quantizeQualityField.textProperty().bindBidirectional(quantizeQuality.valueProperty(), NumberFormat.getIntegerInstance());
 
-        String defaultPath = "Images/Lenna.png";
-        BufferedImage defaultImage = Dialogs.loadImageFromPath(defaultPath);
+        BufferedImage defaultImage = Dialogs.loadImageFromPath(FileBindings.DEFAULT_IMAGE);
         this.process = new ProcessImage(defaultImage);
-
     }
 
     public void close() {
@@ -116,7 +114,7 @@ public class MainWindowController implements Initializable {
     }
 
     public void showOriginal() {
-        File f = new File(FileBindings.defaultImage);
+        File f = new File(FileBindings.DEFAULT_IMAGE);
 
         try {
             Dialogs.showImageInWindow(ImageIO.read(f), "Original", true);

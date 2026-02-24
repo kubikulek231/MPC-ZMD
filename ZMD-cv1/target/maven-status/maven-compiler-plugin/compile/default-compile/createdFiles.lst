@@ -1,7 +1,9 @@
 graphics\MainWindowController.class
 enums\SamplingType.class
 enums\TransformType.class
-Core\FileBindings.class
-Core\Helper.class
+app\Main.class
+core\JFXMain.class
+core\Helper.class
 graphics\Dialogs.class
-Core\JFXMain.class
+module-info.class
+core\FileBindings.class

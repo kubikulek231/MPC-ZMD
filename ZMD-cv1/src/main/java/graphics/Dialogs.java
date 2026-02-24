@@ -11,7 +11,7 @@ import java.util.Iterator;
 
 import javax.imageio.ImageIO;
 
-import Core.FileBindings;
+import core.FileBindings;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Pos;
