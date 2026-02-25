@@ -33,6 +33,7 @@ import javafx.util.Pair;
 public class MainWindowController implements Initializable {
 
     private ProcessImage process;
+    private boolean ycbcrActive = false;
 
     @FXML Button buttonInverseQuantize;
     @FXML Button buttonInverseToRGB;
@@ -108,6 +109,7 @@ public class MainWindowController implements Initializable {
         File selectedFile = Dialogs.openFile();
         if (selectedFile == null) return;
         process.loadImage(selectedFile.getAbsolutePath());
+        ycbcrActive = false;
     }
 
     // ===== Reset =====
@@ -117,6 +119,7 @@ public class MainWindowController implements Initializable {
         process.resetModified();
         qualityMSE.clear();
         qualityPSNR.clear();
+        ycbcrActive = false;
     }
 
     // ===== RGB Channel Viewers =====
@@ -165,32 +168,26 @@ public class MainWindowController implements Initializable {
     // ===== YCbCr Channel Viewers =====
 
     public void showYOriginal() {
-        if (process.originalY == null) return;
         Dialogs.showImageInWindow(process.showOneColorImageFromYCbCr(process.originalY), "Y (original)");
     }
 
     public void showYModified() {
-        if (process.modifiedY == null) return;
         Dialogs.showImageInWindow(process.showOneColorImageFromYCbCr(process.modifiedY), "Y (modified)");
     }
 
     public void showCbOriginal() {
-        if (process.originalCb == null) return;
         Dialogs.showImageInWindow(process.showOneColorImageFromYCbCr(process.originalCb), "Cb (original)");
     }
 
     public void showCbModified() {
-        if (process.modifiedCb == null) return;
         Dialogs.showImageInWindow(process.showOneColorImageFromYCbCr(process.modifiedCb), "Cb (modified)");
     }
 
     public void showCrOriginal() {
-        if (process.originalCr == null) return;
         Dialogs.showImageInWindow(process.showOneColorImageFromYCbCr(process.originalCr), "Cr (original)");
     }
 
     public void showCrModified() {
-        if (process.modifiedCr == null) return;
         Dialogs.showImageInWindow(process.showOneColorImageFromYCbCr(process.modifiedCr), "Cr (modified)");
     }
 
@@ -198,6 +195,7 @@ public class MainWindowController implements Initializable {
 
     /** Convert the modified RGB image to YCbCr colour space. */
     public void convertToYCbCr() {
+        ycbcrActive = true;
         process.convertToYCbCr();
         if (showSteps.isSelected()) {
             Dialogs.showMultipleImageInWindow("YCbCr channels", false, true,
@@ -209,7 +207,8 @@ public class MainWindowController implements Initializable {
 
     /** Convert the modified YCbCr channels back to RGB. */
     public void convertToRGB() {
-        if (process.modifiedY == null) return;
+        if (!ycbcrActive) return;
+        ycbcrActive = false;
         process.convertToRGB();
         if (showSteps.isSelected()) {
             Dialogs.showImageInWindow(process.getImageFromRGB(), "RGB (after inverse)");
@@ -218,7 +217,7 @@ public class MainWindowController implements Initializable {
 
     /** Apply chroma subsampling to the modified Cb and Cr channels. */
     public void sample() {
-        if (process.modifiedCb == null) return;
+        if (!ycbcrActive) return;
         SamplingType type = sampling.getSelectionModel().getSelectedItem();
         process.applySampling(type);
         if (showSteps.isSelected()) {
@@ -230,19 +229,19 @@ public class MainWindowController implements Initializable {
 
     /** Inverse chroma subsampling (bilinear interpolation). */
     public void inverseSample() {
-        if (process.modifiedCb == null) return;
+        if (!ycbcrActive) return;
         process.applyInverseSampling(sampling.getSelectionModel().getSelectedItem());
     }
 
     /** Apply the selected block transform (DCT / WHT) to the YCbCr channels. */
     public void transform() {
-        if (process.modifiedY == null) return;
+        if (!ycbcrActive) return;
         process.applyTransform(transformType.getValue(), transformBlock.getValue());
     }
 
     /** Inverse block transform on the YCbCr channels. */
     public void inverseTransform() {
-        if (process.modifiedY == null) return;
+        if (!ycbcrActive) return;
         process.applyInverseTransform(transformType.getValue(), transformBlock.getValue());
         if (showSteps.isSelected()) {
             Dialogs.showMultipleImageInWindow("After inverse transform", false, true,
@@ -254,13 +253,13 @@ public class MainWindowController implements Initializable {
 
     /** Quantize the transform coefficients using the selected quality setting. */
     public void quantize() {
-        if (process.modifiedY == null) return;
+        if (!ycbcrActive) return;
         process.applyQuantization((int) quantizeQuality.getValue(), transformBlock.getValue());
     }
 
     /** Dequantize the transform coefficients. */
     public void inverseQuantize() {
-        if (process.modifiedY == null) return;
+        if (!ycbcrActive) return;
         process.applyInverseQuantization((int) quantizeQuality.getValue(), transformBlock.getValue());
     }
 
