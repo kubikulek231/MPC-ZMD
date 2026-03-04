@@ -4,9 +4,11 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 
 import Jama.Matrix;
+import enums.QualityType;
 import enums.SamplingType;
 import enums.TransformType;
 import graphics.Dialogs;
+import jpeg.Quality;
 import jpeg.Sampling;
 
 public class ProcessImage {
@@ -215,6 +217,86 @@ public class ProcessImage {
         modifiedY  = quantizeMatrix(modifiedY,  scale, blockSize, true, false);
         modifiedCb = quantizeMatrix(modifiedCb, scale, blockSize, true, true);
         modifiedCr = quantizeMatrix(modifiedCr, scale, blockSize, true, true);
+    }
+
+    // ===== Extended quality methods using the Quality class =====
+
+    /**
+     * Computes MSE, MAE, SAE and PSNR for the requested channel.
+     * Returns double[]{mse, mae, sae, psnr}.
+     * For RGB / YCbCr types the metric values are arithmetically averaged across the 3 channels.
+     * Throws IllegalStateException if the required channel data is not yet available
+     * (e.g.  Cb/Cr dimensions mismatch because subsampling was not reversed).
+     */
+    public double[] calculateMetrics(QualityType type) {
+        switch (type) {
+            case RED:   return metricsForChannels(Quality.convertIntToDouble(originalRed),   Quality.convertIntToDouble(modifiedRed));
+            case GREEN: return metricsForChannels(Quality.convertIntToDouble(originalGreen), Quality.convertIntToDouble(modifiedGreen));
+            case BLUE:  return metricsForChannels(Quality.convertIntToDouble(originalBlue),  Quality.convertIntToDouble(modifiedBlue));
+            case Y:     return metricsForChannels(originalY.getArray(), modifiedY.getArray());
+            case CB:    return metricsForMatchedChannels(originalCb, modifiedCb, "Cb");
+            case CR:    return metricsForMatchedChannels(originalCr, modifiedCr, "Cr");
+            case RGB: {
+                double[] r = metricsForChannels(Quality.convertIntToDouble(originalRed),   Quality.convertIntToDouble(modifiedRed));
+                double[] g = metricsForChannels(Quality.convertIntToDouble(originalGreen), Quality.convertIntToDouble(modifiedGreen));
+                double[] b = metricsForChannels(Quality.convertIntToDouble(originalBlue),  Quality.convertIntToDouble(modifiedBlue));
+                double mse  = (r[0] + g[0] + b[0]) / 3.0;
+                double mae  = (r[1] + g[1] + b[1]) / 3.0;
+                double sae  = (r[2] + g[2] + b[2]) / 3.0;
+                return new double[]{mse, mae, sae, Quality.countPSNR(mse)};
+            }
+            case YCBCR: {
+                double[] y  = metricsForChannels(originalY.getArray(),  modifiedY.getArray());
+                double[] cb = metricsForMatchedChannels(originalCb, modifiedCb, "Cb");
+                double[] cr = metricsForMatchedChannels(originalCr, modifiedCr, "Cr");
+                double mse  = (y[0] + cb[0] + cr[0]) / 3.0;
+                double mae  = (y[1] + cb[1] + cr[1]) / 3.0;
+                double sae  = (y[2] + cb[2] + cr[2]) / 3.0;
+                return new double[]{mse, mae, sae, Quality.countPSNR(mse)};
+            }
+            default: throw new IllegalArgumentException("Unknown QualityType: " + type);
+        }
+    }
+
+    /** Computes SSIM and MSSIM for the requested YCbCr channel. Returns double[]{ssim, mssim}. */
+    public double[] calculateSSIMMetrics(QualityType type) {
+        switch (type) {
+            case Y:  return ssimForChannels(originalY.getArray(),  modifiedY.getArray());
+            case CB: return ssimForMatchedChannels(originalCb, modifiedCb, "Cb");
+            case CR: return ssimForMatchedChannels(originalCr, modifiedCr, "Cr");
+            default: throw new IllegalArgumentException("SSIM is only supported for Y, Cb and Cr channels.");
+        }
+    }
+
+    private double[] metricsForChannels(double[][] orig, double[][] mod) {
+        double mse = Quality.countMSE(orig, mod);
+        return new double[]{mse, Quality.countMAE(orig, mod), Quality.countSAE(orig, mod), Quality.countPSNR(mse)};
+    }
+
+    private double[] metricsForMatchedChannels(Matrix orig, Matrix mod, String name) {
+        if (orig.getRowDimension() != mod.getRowDimension()
+                || orig.getColumnDimension() != mod.getColumnDimension()) {
+            throw new IllegalStateException(
+                    name + " channel dimensions don't match (" +
+                    orig.getRowDimension() + "×" + orig.getColumnDimension() + " vs " +
+                    mod.getRowDimension()  + "×" + mod.getColumnDimension()  +
+                    "). Apply inverse subsampling first.");
+        }
+        return metricsForChannels(orig.getArray(), mod.getArray());
+    }
+
+    private double[] ssimForChannels(double[][] orig, double[][] mod) {
+        return new double[]{Quality.countSSIM(new Matrix(orig), new Matrix(mod)),
+                            Quality.countMSSIM(new Matrix(orig), new Matrix(mod))};
+    }
+
+    private double[] ssimForMatchedChannels(Matrix orig, Matrix mod, String name) {
+        if (orig.getRowDimension() != mod.getRowDimension()
+                || orig.getColumnDimension() != mod.getColumnDimension()) {
+            throw new IllegalStateException(
+                    name + " channel dimensions don't match. Apply inverse subsampling first.");
+        }
+        return ssimForChannels(orig.getArray(), mod.getArray());
     }
 
     // MSE = average squared difference per channel per pixel - lower means less distortion

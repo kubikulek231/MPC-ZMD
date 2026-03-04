@@ -11,6 +11,7 @@ import javax.imageio.ImageIO;
 
 import core.FileBindings;
 import core.Helper;
+import enums.QualityType;
 import enums.SamplingType;
 import enums.TransformType;
 import imageProcessing.ProcessImage;
@@ -18,6 +19,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -45,6 +48,8 @@ public class MainWindowController implements Initializable {
     @FXML Button buttonTransform;
 
     @FXML TextField qualityMSE;
+    @FXML TextField qualityMAE;
+    @FXML TextField qualitySAE;
     @FXML TextField qualityPSNR;
 
     @FXML Slider quantizeQuality;
@@ -117,10 +122,17 @@ public class MainWindowController implements Initializable {
     /** Restore all modified channels back to the original state. */
     public void reset() {
         process.resetModified();
-        qualityMSE.clear();
-        qualityPSNR.clear();
+        clearPSNRFields();
         ycbcrActive = false;
     }
+
+    private void clearPSNRFields() {
+        qualityMSE.clear();
+        qualityMAE.clear();
+        qualitySAE.clear();
+        qualityPSNR.clear();
+    }
+
 
     // ===== RGB Channel Viewers =====
 
@@ -265,15 +277,18 @@ public class MainWindowController implements Initializable {
 
     // ===== Quality Metrics =====
 
-    /** Calculate and display MSE and PSNR between the original and modified RGB images. */
-    public void countQuality() {
-        double mse  = process.calculateMSE();
-        double psnr = process.calculatePSNR();
-        qualityMSE.setText(String.format("%.4f", mse));
-        qualityPSNR.setText(Double.isInfinite(psnr)
-                ? "\u221E dB"
-                : String.format("%.2f dB", psnr));
+    /** Calculate and display MSE, MAE, SAE, and PSNR for the RGB image. */
+    public void countPSNR() {
+        try {
+            double[] metrics = process.calculateMetrics(QualityType.RGB); // [mse, mae, sae, psnr]
+            qualityMSE.setText(String.format("%.4f", metrics[0]));
+            qualityMAE.setText(String.format("%.4f", metrics[1]));
+            qualitySAE.setText(String.format("%.2f",  metrics[2]));
+            qualityPSNR.setText(Double.isInfinite(metrics[3])
+                    ? "\u221E dB"
+                    : String.format("%.2f dB", metrics[3]));
+        } catch (IllegalStateException e) {
+            new Alert(AlertType.ERROR, e.getMessage()).showAndWait();
+        }
     }
 }
-
-

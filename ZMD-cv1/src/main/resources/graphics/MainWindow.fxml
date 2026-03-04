@@ -20,7 +20,7 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="graphics.MainWindowController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="730.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="graphics.MainWindowController">
    <top>
       <StackPane BorderPane.alignment="CENTER">
          <children>
@@ -158,30 +158,51 @@
                   <Insets />
                </VBox.margin>
             </GridPane>
-            <GridPane hgap="5.0" styleClass="background">
-              <columnConstraints>
-                <ColumnConstraints halignment="RIGHT" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-                <ColumnConstraints halignment="LEFT" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-              </columnConstraints>
-              <rowConstraints>
-                <RowConstraints minHeight="10.0" prefHeight="20.0" vgrow="SOMETIMES" />
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-              </rowConstraints>
+            <GridPane hgap="5.0" vgap="4.0" styleClass="background">
+               <!-- col 0: button | col 1: label | col 2: field | col 3: label | col 4: field -->
+               <columnConstraints>
+                  <ColumnConstraints halignment="CENTER" hgrow="NEVER" minWidth="10.0" prefWidth="100.0" />
+                  <ColumnConstraints halignment="RIGHT" hgrow="NEVER" minWidth="30.0" prefWidth="40.0" />
+                  <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" minWidth="10.0" />
+                  <ColumnConstraints halignment="RIGHT" hgrow="NEVER" minWidth="30.0" prefWidth="40.0" />
+                  <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" minWidth="10.0" />
+               </columnConstraints>
+               <rowConstraints>
+                  <RowConstraints minHeight="10.0" prefHeight="22.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+               </rowConstraints>
                <VBox.margin>
                   <Insets left="5.0" right="5.0" />
                </VBox.margin>
                <children>
-                  <Button mnemonicParsing="false" onAction="#countQuality" prefWidth="100.0" text="Count" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.rowSpan="2147483647" GridPane.valignment="CENTER" />
-                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="MSE" GridPane.rowIndex="1" />
-                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="PSNR" GridPane.rowIndex="2" />
-                  <TextField fx:id="qualityMSE" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                  <TextField fx:id="qualityPSNR" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Objective quality" GridPane.columnSpan="2147483647" GridPane.halignment="CENTER">
-                     <font>
-                        <Font name="System Bold" size="14.0" />
-                     </font>
+                  <!-- Row 0: section header -->
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Objective quality"
+                        GridPane.columnSpan="5" GridPane.halignment="CENTER">
+                     <font><Font name="System Bold" size="14.0" /></font>
                   </Text>
+                  <!-- Col 0: button spanning rows 1-2 -->
+                  <Button maxWidth="1.7976931348623157E308" maxHeight="1.7976931348623157E308" mnemonicParsing="false"
+                          onAction="#countPSNR" text="Count&#10;PSNR"
+                          GridPane.rowIndex="1" GridPane.rowSpan="2" GridPane.valignment="CENTER" />
+                  <!-- Row 1: MSE | MAE -->
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="MSE"
+                        GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
+                  <TextField fx:id="qualityMSE" editable="false"
+                             GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="MAE"
+                        GridPane.columnIndex="3" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
+                  <TextField fx:id="qualityMAE" editable="false"
+                             GridPane.columnIndex="4" GridPane.rowIndex="1" />
+                  <!-- Row 2: SAE | PSNR -->
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="SAE"
+                        GridPane.columnIndex="1" GridPane.rowIndex="2" GridPane.valignment="CENTER" />
+                  <TextField fx:id="qualitySAE" editable="false"
+                             GridPane.columnIndex="2" GridPane.rowIndex="2" />
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="PSNR"
+                        GridPane.columnIndex="3" GridPane.rowIndex="2" GridPane.valignment="CENTER" />
+                  <TextField fx:id="qualityPSNR" editable="false"
+                             GridPane.columnIndex="4" GridPane.rowIndex="2" />
                </children>
             </GridPane>
             <GridPane alignment="CENTER" hgap="5.0" layoutX="10.0" layoutY="10.0" styleClass="background" vgap="5.0">
