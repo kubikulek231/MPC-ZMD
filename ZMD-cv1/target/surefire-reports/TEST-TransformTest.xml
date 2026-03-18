@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="ColorTransformTest" time="0.029" tests="2" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="TransformTest" time="0.01" tests="3" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="25"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -59,12 +59,37 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="69.0"/>
   </properties>
-  <testcase name="convertOriginalRGBtoYcBcRTest" classname="ColorTransformTest" time="0.014">
-    <system-out><![CDATA[Test for conversion from RGB to YCbCr: OK
+  <testcase name="transformMatrixTest" classname="TransformTest" time="0.003">
+    <system-out><![CDATA[DCT matrices tests:
+	Test DCT matrix 8x8: OK
+	Test DCT matrix 16x16: OK
+	Test DCT matrix 32x32: OK
+
+WHT matrices tests:
+	Test WHT for present SQRT: OK
+	Test WHT matrix 2x2: OK
+	Test WHT matrix 4x4: OK
+	Test WHT matrix 8x8: OK
+	Test WHT matrix 32x32: OK
+
 ]]></system-out>
   </testcase>
-  <testcase name="convertModifiedYcBcRtoRGBTest" classname="ColorTransformTest" time="0.001">
-    <system-out><![CDATA[Test for conversion from YCbCr to RGB: OK
+  <testcase name="transformTest" classname="TransformTest" time="0.003">
+    <system-out><![CDATA[Transform test for 8x8 matrix:
+	Transform DCT 8x8: OK
+	Transform WHT 8x8: OK
+	Inverse transform DCT 8x8: OK
+	Inverse transform WHT 8x8: OK
+
+]]></system-out>
+  </testcase>
+  <testcase name="transformBlocksTest" classname="TransformTest" time="0.004">
+    <system-out><![CDATA[Transform test for larger NxN matrix:
+	Transform DCT NxN: OK
+	Transform WHT NxN: OK
+	Inverse transform DCT NxN: OK
+	Inverse transform WHT NxN: OK
+
 ]]></system-out>
   </testcase>
 </testsuite>

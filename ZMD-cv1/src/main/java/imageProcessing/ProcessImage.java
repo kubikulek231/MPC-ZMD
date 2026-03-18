@@ -10,6 +10,7 @@ import enums.TransformType;
 import graphics.Dialogs;
 import jpeg.Quality;
 import jpeg.Sampling;
+import jpeg.Transform;
 
 public class ProcessImage {
 
@@ -373,112 +374,7 @@ public class ProcessImage {
     // split matrix into NxN tiles, transform each tile, write results back
     // tiles that don't fit at the edge are left untouched
     private Matrix applyBlockTransform(Matrix m, TransformType type, int N, boolean inverse) {
-        int width = m.getRowDimension();
-        int height = m.getColumnDimension();
-        Matrix result = m.copy();
-        for (int bx = 0; bx + N <= width; bx += N) {
-            for (int by = 0; by + N <= height; by += N) {
-                double[][] block = extractBlock(m, bx, by, N);
-                double[][] transformed = (type == TransformType.DCT)
-                        ? (inverse ? computeIDCT(block) : computeDCT(block))
-                        : (inverse ? computeIWHT(block) : computeWHT(block));
-                setBlock(result, transformed, bx, by);
-            }
-        }
-        return result;
-    }
-
-    // copy an NxN region out of the matrix into a plain 2D array for the transform
-    private double[][] extractBlock(Matrix m, int bx, int by, int N) {
-        double[][] block = new double[N][N];
-        for (int dx = 0; dx < N; dx++)
-            for (int dy = 0; dy < N; dy++)
-                block[dx][dy] = m.get(bx + dx, by + dy);
-        return block;
-    }
-
-    // write the transformed block back into the right position in the matrix
-    private void setBlock(Matrix m, double[][] block, int bx, int by) {
-        int N = block.length;
-        for (int dx = 0; dx < N; dx++)
-            for (int dy = 0; dy < N; dy++)
-                m.set(bx + dx, by + dy, block[dx][dy]);
-    }
-
-    // 2D forward DCT - transforms spatial pixel values into frequency coefficients
-    // cu/cv are normalization factors so the DC coefficient gets the 1/sqrt(2) weight
-    private double[][] computeDCT(double[][] block) {
-        int N = block.length;
-        double[][] F = new double[N][N];
-        double norm = 2.0 / N;
-        for (int u = 0; u < N; u++) {
-            double cu = (u == 0) ? 1.0 / Math.sqrt(2) : 1.0;
-            for (int v = 0; v < N; v++) {
-                double cv = (v == 0) ? 1.0 / Math.sqrt(2) : 1.0;
-                double sum = 0;
-                for (int x = 0; x < N; x++)
-                    for (int y = 0; y < N; y++)
-                        sum += block[x][y]
-                             * Math.cos((2 * x + 1) * u * Math.PI / (2.0 * N))
-                             * Math.cos((2 * y + 1) * v * Math.PI / (2.0 * N));
-                F[u][v] = norm * cu * cv * sum;
-            }
-        }
-        return F;
-    }
-
-    // 2D inverse DCT - reconstructs pixel values from the frequency coefficients
-    private double[][] computeIDCT(double[][] F) {
-        int N = F.length;
-        double[][] f = new double[N][N];
-        double norm = 2.0 / N;
-        for (int x = 0; x < N; x++) {
-            for (int y = 0; y < N; y++) {
-                double sum = 0;
-                for (int u = 0; u < N; u++) {
-                    double cu = (u == 0) ? 1.0 / Math.sqrt(2) : 1.0;
-                    for (int v = 0; v < N; v++) {
-                        double cv = (v == 0) ? 1.0 / Math.sqrt(2) : 1.0;
-                        sum += cu * cv * F[u][v]
-                             * Math.cos((2 * x + 1) * u * Math.PI / (2.0 * N))
-                             * Math.cos((2 * y + 1) * v * Math.PI / (2.0 * N));
-                    }
-                }
-                f[x][y] = norm * sum;
-            }
-        }
-        return f;
-    }
-
-    // 2D WHT using the Hadamard matrix: F = (1/N) * H * f * H
-    private double[][] computeWHT(double[][] block) {
-        int N = block.length;
-        Matrix H = buildHadamard(N);
-        Matrix f = new Matrix(block);
-        return H.times(f).times(H).times(1.0 / N).getArray();
-    }
-
-    // inverse WHT is the same operation as forward WHT - the Hadamard matrix is self-inverse up to scaling
-    private double[][] computeIWHT(double[][] block) {
-        return computeWHT(block);
-    }
-
-    // build the Hadamard matrix recursively using the [H H; H -H] pattern, N must be power of 2
-    private Matrix buildHadamard(int N) {
-        if (N == 1) return new Matrix(new double[][]{{1}});
-        Matrix h    = buildHadamard(N / 2);
-        Matrix result = new Matrix(N, N);
-        int half = N / 2;
-        for (int i = 0; i < half; i++) {
-            for (int j = 0; j < half; j++) {
-                double v = h.get(i, j);
-                result.set(i,        j,        v);
-                result.set(i,        j + half,  v);
-                result.set(i + half, j,         v);
-                result.set(i + half, j + half, -v);
-            }
-        }
-        return result;
+        return inverse ? Transform.inverseTransform(m, type, N) : Transform.transform(m, type, N);
     }
 
     // convert quality 1-100 to a multiplier for the quantization table
