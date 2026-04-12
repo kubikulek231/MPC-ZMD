@@ -1,0 +1,4 @@
+--patch-module
+cz.vutbr.zmd=_
+--add-reads
+cz.vutbr.zmd=ALL-UNNAMED

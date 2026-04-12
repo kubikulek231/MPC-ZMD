@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "mvn: compile",
+            "type": "shell",
+            "command": "mvn compile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$java"
+        },
+        {
+            "label": "mvn: javafx:run",
+            "type": "shell",
+            "command": "mvn javafx:run",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": "$java"
+        }
+    ]
+}

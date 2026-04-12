@@ -1,0 +1,5 @@
+QualityTest.class
+SamplingTest.class
+QuantizationTest.class
+TransformTest.class
+ColorTransformTest.class
