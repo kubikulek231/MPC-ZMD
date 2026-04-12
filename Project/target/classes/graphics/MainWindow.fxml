@@ -5,275 +5,224 @@
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.Menu?>
-<?import javafx.scene.control.MenuBar?>
-<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="730.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="graphics.MainWindowController">
+<BorderPane prefHeight="860.0" prefWidth="1120.0" styleClass="app-root" stylesheets="@main-window.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="graphics.MainWindowController">
    <top>
-      <StackPane BorderPane.alignment="CENTER">
+      <VBox>
          <children>
-            <MenuBar>
-              <menus>
-                <Menu mnemonicParsing="false" text="File">
-                  <items>
-                              <MenuItem mnemonicParsing="false" onAction="#changeImage" text="Open Image..." />
-                                                      <MenuItem mnemonicParsing="false" onAction="#useDefaultImage" text="Use Default Image" />
-                        <MenuItem mnemonicParsing="false" onAction="#close" text="Close" />
-                  </items>
-                </Menu>
-                <Menu mnemonicParsing="false" text="Edit">
-                  <items>
-                              <MenuItem mnemonicParsing="false" onAction="#reset" text="Reset Workflow" />
-                                    <MenuItem mnemonicParsing="false" onAction="#closeWindows" text="Close Preview Windows" />
-                  </items>
-                </Menu>
-                  <Menu mnemonicParsing="false" text="Help">
-                     <items>
-                        <MenuItem disable="true" mnemonicParsing="false" text="About" />
-                     </items>
-                  </Menu>
-              </menus>
-            </MenuBar>
-            <Text opacity="0.77" strokeType="OUTSIDE" strokeWidth="0.0" style="-fx-fill: #e6e6e6;" text="\@JPEG" StackPane.alignment="CENTER_RIGHT">
-               <StackPane.margin>
-                  <Insets right="10.0" />
-               </StackPane.margin>
-            </Text>
+            <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="hero-bar">
+               <children>
+                  <VBox spacing="3.0">
+                     <children>
+                        <Label styleClass="hero-title" text="JPEG Pipeline Studio" />
+                        <Label styleClass="hero-subtitle" text="Experiment with YCbCr conversion, sampling, transform and quantization." wrapText="true" />
+                     </children>
+                  </VBox>
+                  <Pane HBox.hgrow="ALWAYS" />
+                  <HBox alignment="CENTER_RIGHT" spacing="8.0">
+                     <children>
+                        <Button mnemonicParsing="false" onAction="#changeImage" styleClass="top-action-button" text="Open Image" />
+                        <Button mnemonicParsing="false" onAction="#useDefaultImage" styleClass="top-action-button" text="Default" />
+                        <Button mnemonicParsing="false" onAction="#reset" styleClass="top-action-button" text="Reset" />
+                        <Button mnemonicParsing="false" onAction="#closeWindows" styleClass="top-action-button" text="Close Previews" />
+                        <Button mnemonicParsing="false" onAction="#close" styleClass="top-action-button top-action-danger" text="Exit" />
+                     </children>
+                  </HBox>
+               </children>
+               <padding>
+                  <Insets bottom="14.0" left="18.0" right="18.0" top="14.0" />
+               </padding>
+            </HBox>
          </children>
-      </StackPane>
+      </VBox>
    </top>
    <center>
-      <VBox spacing="10.0" styleClass="background" BorderPane.alignment="CENTER">
-         <children>
-            <GridPane alignment="CENTER" hgap="5.0" layoutX="10.0" layoutY="10.0" styleClass="background" vgap="5.0">
-               <columnConstraints>
-                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-               </columnConstraints>
-               <rowConstraints>
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-               </rowConstraints>
+      <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="main-scroll" BorderPane.alignment="CENTER">
+         <content>
+            <VBox spacing="14.0" styleClass="content-wrap">
                <children>
-                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Source Image" GridPane.columnIndex="1">
-                     <font>
-                        <Font name="System Bold" size="14.0" />
-                     </font>
-                  </Text>
-                  <Button mnemonicParsing="false" onAction="#showRedOriginal" prefWidth="100.0" style="-fx-background-color: red; -fx-text-fill: white; -fx-font-weight: bold;" text="Red" GridPane.rowIndex="1" />
-                  <Button mnemonicParsing="false" onAction="#showBlueOriginal" prefWidth="100.0" style="-fx-background-color: blue; -fx-text-fill: white; -fx-font-weight: bold;" text="Blue" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-                  <Button mnemonicParsing="false" onAction="#showGreenOriginal" prefWidth="100.0" style="-fx-background-color: green; -fx-text-fill: white; -fx-font-weight: bold;" text="Green" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                  <Button mnemonicParsing="false" onAction="#showYOriginal" prefWidth="100.0" text="Y" GridPane.rowIndex="2" />
-                  <Button mnemonicParsing="false" onAction="#showCbOriginal" prefWidth="100.0" text="Cb" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                  <Button mnemonicParsing="false" onAction="#showCrOriginal" prefWidth="100.0" text="Cr" GridPane.columnIndex="2" GridPane.rowIndex="2" />
-                  <CheckBox fx:id="shadesOfGrey" mnemonicParsing="false" text="Gray Preview" GridPane.columnIndex="2" GridPane.valignment="CENTER" />
-                  <Button mnemonicParsing="false" onAction="#showOriginal" prefWidth="100.0" text="Show Source" />
-               </children>
-               <padding>
-                  <Insets left="5.0" right="5.0" />
-               </padding>
-            </GridPane>
-            <GridPane hgap="5.0" styleClass="background" vgap="5.0">
-              <columnConstraints>
-                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" percentWidth="40.0" prefWidth="100.0" />
-                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-              </columnConstraints>
-              <rowConstraints>
-                  <RowConstraints minHeight="10.0" prefHeight="20.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                <RowConstraints minHeight="10.0" prefHeight="40.0" valignment="CENTER" vgrow="SOMETIMES" />
-              </rowConstraints>
-               <children>
-                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Process In YCbCr" GridPane.columnSpan="2147483647">
-                     <font>
-                        <Font name="System Bold" size="14.0" />
-                     </font>
-                  </Text>
-                  <CheckBox fx:id="showSteps" mnemonicParsing="false" text="Show Step Previews" GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.rowIndex="0" />
-                  <Text fx:id="workflowStatus" strokeType="OUTSIDE" strokeWidth="0.0" text="Workflow status" wrappingWidth="330.0" GridPane.columnSpan="2147483647" GridPane.rowIndex="1" />
-                  <Button fx:id="buttonToYCbCr" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#convertToYCbCr" text="1. Convert RGB to YCbCr" GridPane.rowIndex="2" />
-                  <Button fx:id="buttonSample" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sample" text="2. Downsample Chroma" GridPane.rowIndex="3" />
-                  <Button fx:id="buttonTransform" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#transform" text="3. Apply Transform" GridPane.rowIndex="4" />
-                  <Button fx:id="buttonQuantize" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#quantize" text="4. Quantize Coefficients" GridPane.rowIndex="5" />
-                  <ComboBox fx:id="sampling" maxWidth="1.7976931348623157E308" promptText="Sampling" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                  <HBox alignment="CENTER" spacing="10.0" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.rowIndex="4" GridPane.valignment="CENTER">
+                  <HBox spacing="14.0">
                      <children>
-                        <ComboBox fx:id="transformType" prefWidth="150.0" promptText="Transform" />
-                        <Spinner fx:id="transformBlock" prefWidth="70.0" />
+                        <VBox spacing="12.0" styleClass="card">
+                           <children>
+                              <Label styleClass="card-title" text="Source Channels" />
+                              <GridPane hgap="8.0" vgap="8.0">
+                                 <children>
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showOriginal" styleClass="primary-button" text="Show Source" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showRedOriginal" styleClass="channel-red" text="Red" GridPane.rowIndex="1" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showGreenOriginal" styleClass="channel-green" text="Green" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showBlueOriginal" styleClass="channel-blue" text="Blue" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showYOriginal" text="Y" GridPane.rowIndex="2" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showCbOriginal" text="Cb" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showCrOriginal" text="Cr" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+                                 </children>
+                              </GridPane>
+                              <CheckBox fx:id="shadesOfGrey" mnemonicParsing="false" styleClass="soft-check" text="Gray Preview" />
+                           </children>
+                           <HBox.hgrow>
+                              <Priority fx:constant="ALWAYS" />
+                           </HBox.hgrow>
+                        </VBox>
+
+                        <VBox spacing="12.0" styleClass="card">
+                           <children>
+                              <Label styleClass="card-title" text="Current Result" />
+                              <GridPane hgap="8.0" vgap="8.0">
+                                 <children>
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showRGBModified" styleClass="primary-button" text="Show Result" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showRedModified" styleClass="channel-red" text="Red" GridPane.rowIndex="1" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showGreenModified" styleClass="channel-green" text="Green" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showBlueModified" styleClass="channel-blue" text="Blue" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showYModified" text="Y" GridPane.rowIndex="2" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showCbModified" text="Cb" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showCrModified" text="Cr" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+                                 </children>
+                              </GridPane>
+                           </children>
+                           <HBox.hgrow>
+                              <Priority fx:constant="ALWAYS" />
+                           </HBox.hgrow>
+                        </VBox>
                      </children>
                   </HBox>
-                  <HBox alignment="CENTER" spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="5" GridPane.valignment="TOP">
+
+                  <HBox spacing="14.0">
                      <children>
-                        <Slider fx:id="quantizeQuality" maxWidth="1.7976931348623157E308" prefWidth="200.0" showTickLabels="true" showTickMarks="true" />
-                        <TextField fx:id="quantizeQualityField" maxWidth="50.0" minWidth="50.0" prefWidth="50.0" />
+                        <VBox spacing="10.0" styleClass="card workflow-card">
+                           <children>
+                              <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                 <children>
+                                    <Label styleClass="card-title" text="Encode In YCbCr" />
+                                    <CheckBox fx:id="showSteps" mnemonicParsing="false" styleClass="soft-check" text="Show step previews" />
+                                 </children>
+                              </HBox>
+
+                              <Text fx:id="workflowStatus" styleClass="status-text" strokeType="OUTSIDE" strokeWidth="0.0" text="Workflow status" wrappingWidth="500.0" />
+
+                              <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                 <children>
+                                    <Button fx:id="buttonToYCbCr" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#convertToYCbCr" styleClass="step-button" text="1. Convert RGB to YCbCr" />
+                                 </children>
+                              </HBox>
+
+                              <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                 <children>
+                                    <Button fx:id="buttonSample" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sample" styleClass="step-button" text="2. Downsample Chroma" />
+                                    <ComboBox fx:id="sampling" maxWidth="1.7976931348623157E308" prefWidth="170.0" promptText="Sampling" />
+                                 </children>
+                              </HBox>
+
+                              <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                 <children>
+                                    <Button fx:id="buttonTransform" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#transform" styleClass="step-button" text="3. Apply Transform" />
+                                    <ComboBox fx:id="transformType" prefWidth="150.0" promptText="Transform" />
+                                    <Spinner fx:id="transformBlock" prefWidth="82.0" />
+                                 </children>
+                              </HBox>
+
+                              <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                 <children>
+                                    <Button fx:id="buttonQuantize" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#quantize" styleClass="step-button" text="4. Quantize Coefficients" />
+                                    <Slider fx:id="quantizeQuality" prefWidth="210.0" showTickLabels="true" showTickMarks="true" />
+                                    <TextField fx:id="quantizeQualityField" prefWidth="60.0" />
+                                 </children>
+                              </HBox>
+                           </children>
+                           <HBox.hgrow>
+                              <Priority fx:constant="ALWAYS" />
+                           </HBox.hgrow>
+                        </VBox>
+
+                        <VBox spacing="10.0" styleClass="card workflow-card">
+                           <children>
+                              <Label styleClass="card-title" text="Return To RGB" />
+                              <Button fx:id="buttonInverseQuantize" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#inverseQuantize" styleClass="step-button" text="4. Dequantize Coefficients" />
+                              <Button fx:id="buttonInverseTransform" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#inverseTransform" styleClass="step-button" text="3. Inverse Transform" />
+                              <Button fx:id="buttonInverseSample" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#inverseSample" styleClass="step-button" text="2. Restore Sampling" />
+                              <Button fx:id="buttonInverseToRGB" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#convertToRGB" styleClass="primary-button" text="5. Convert YCbCr to RGB" />
+                           </children>
+                           <HBox.hgrow>
+                              <Priority fx:constant="ALWAYS" />
+                           </HBox.hgrow>
+                        </VBox>
                      </children>
                   </HBox>
+
+                  <VBox spacing="12.0" styleClass="card">
+                     <children>
+                        <Label styleClass="card-title" text="RGB Quality Metrics" />
+                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                           <children>
+                              <Button fx:id="buttonCountPSNR" mnemonicParsing="false" onAction="#countPSNR" styleClass="primary-button metric-action" text="Calculate Metrics" />
+                              <GridPane hgap="10.0" vgap="8.0">
+                                 <children>
+                                    <Label text="MSE" GridPane.rowIndex="0" GridPane.columnIndex="0">
+                                       <tooltip>
+                                          <Tooltip text="Mean Squared Error. Lower is better. 0 means identical reconstruction." />
+                                       </tooltip>
+                                    </Label>
+                                    <TextField fx:id="qualityMSE" editable="false" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                                       <tooltip>
+                                          <Tooltip text="Mean Squared Error. Smaller values indicate less distortion." />
+                                       </tooltip>
+                                    </TextField>
+
+                                    <Label text="MAE" GridPane.rowIndex="0" GridPane.columnIndex="2">
+                                       <tooltip>
+                                          <Tooltip text="Mean Absolute Error. Lower is better." />
+                                       </tooltip>
+                                    </Label>
+                                    <TextField fx:id="qualityMAE" editable="false" GridPane.rowIndex="0" GridPane.columnIndex="3">
+                                       <tooltip>
+                                          <Tooltip text="Mean Absolute Error across all compared values." />
+                                       </tooltip>
+                                    </TextField>
+
+                                    <Label text="SAE" GridPane.rowIndex="1" GridPane.columnIndex="0">
+                                       <tooltip>
+                                          <Tooltip text="Sum of Absolute Errors. Lower is better." />
+                                       </tooltip>
+                                    </Label>
+                                    <TextField fx:id="qualitySAE" editable="false" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                                       <tooltip>
+                                          <Tooltip text="Total absolute error. Best value is 0." />
+                                       </tooltip>
+                                    </TextField>
+
+                                    <Label text="PSNR" GridPane.rowIndex="1" GridPane.columnIndex="2">
+                                       <tooltip>
+                                          <Tooltip text="Peak Signal-to-Noise Ratio in dB. Higher is better." />
+                                       </tooltip>
+                                    </Label>
+                                    <TextField fx:id="qualityPSNR" editable="false" GridPane.rowIndex="1" GridPane.columnIndex="3">
+                                       <tooltip>
+                                          <Tooltip text="PSNR in dB. Around 40 dB or higher is usually very good." />
+                                       </tooltip>
+                                    </TextField>
+                                 </children>
+                              </GridPane>
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
                </children>
                <padding>
-                  <Insets left="5.0" right="5.0" />
+                  <Insets bottom="18.0" left="18.0" right="18.0" top="18.0" />
                </padding>
-            </GridPane>
-            <GridPane hgap="5.0" layoutX="10.0" layoutY="100.0" styleClass="background" vgap="5.0">
-               <columnConstraints>
-                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" percentWidth="40.0" prefWidth="100.0" />
-                  <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-               </columnConstraints>
-               <rowConstraints>
-                  <RowConstraints minHeight="10.0" prefHeight="20.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-               </rowConstraints>
-               <children>
-                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Return To RGB" GridPane.columnSpan="2147483647">
-                     <font>
-                        <Font name="System Bold" size="14.0" />
-                     </font>
-                  </Text>
-                  <Button fx:id="buttonInverseQuantize" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#inverseQuantize" text="4. Dequantize Coefficients" GridPane.rowIndex="1" />
-                  <Button fx:id="buttonInverseTransform" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#inverseTransform" text="3. Inverse Transform" GridPane.rowIndex="2" />
-                  <Button fx:id="buttonInverseSample" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#inverseSample" text="2. Restore Sampling" GridPane.rowIndex="3" />
-                  <Button fx:id="buttonInverseToRGB" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#convertToRGB" text="5. Convert YCbCr to RGB" GridPane.rowIndex="4" />
-                  <HBox alignment="CENTER" spacing="10.0" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.rowIndex="3" GridPane.valignment="CENTER" />
-               </children>
-               <padding>
-                  <Insets left="5.0" right="5.0" />
-               </padding>
-               <VBox.margin>
-                  <Insets />
-               </VBox.margin>
-            </GridPane>
-            <GridPane hgap="5.0" vgap="4.0" styleClass="background">
-               <!-- col 0: button | col 1: label | col 2: field | col 3: label | col 4: field -->
-               <columnConstraints>
-                  <ColumnConstraints halignment="CENTER" hgrow="NEVER" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints halignment="RIGHT" hgrow="NEVER" minWidth="30.0" prefWidth="40.0" />
-                  <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" minWidth="10.0" />
-                  <ColumnConstraints halignment="RIGHT" hgrow="NEVER" minWidth="30.0" prefWidth="40.0" />
-                  <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" minWidth="10.0" />
-               </columnConstraints>
-               <rowConstraints>
-                  <RowConstraints minHeight="10.0" prefHeight="22.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-               </rowConstraints>
-               <VBox.margin>
-                  <Insets left="5.0" right="5.0" />
-               </VBox.margin>
-               <children>
-                  <!-- Row 0: section header -->
-                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="RGB Quality Metrics"
-                        GridPane.columnSpan="5" GridPane.halignment="CENTER">
-                     <font><Font name="System Bold" size="14.0" /></font>
-                  </Text>
-                  <!-- Col 0: button spanning rows 1-2 -->
-                    <Button fx:id="buttonCountPSNR" maxWidth="1.7976931348623157E308" maxHeight="1.7976931348623157E308" mnemonicParsing="false"
-                          onAction="#countPSNR" text="Count&#10;PSNR"
-                          GridPane.rowIndex="1" GridPane.rowSpan="2" GridPane.valignment="CENTER" />
-                  <!-- Row 1: MSE | MAE -->
-                  <Label text="MSE" GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.valignment="CENTER">
-                     <tooltip>
-                        <Tooltip text="Mean Squared Error. Range: 0 to infinity. Lower is better. 0 means the reconstructed RGB image is identical to the original. Large values mean stronger distortion." />
-                     </tooltip>
-                  </Label>
-                  <TextField fx:id="qualityMSE" editable="false"
-                             GridPane.columnIndex="2" GridPane.rowIndex="1">
-                     <tooltip>
-                        <Tooltip text="Mean Squared Error. Best value is 0. Small values usually mean very small visible differences; larger values mean increasing loss." />
-                     </tooltip>
-                  </TextField>
-                  <Label text="MAE" GridPane.columnIndex="3" GridPane.rowIndex="1" GridPane.valignment="CENTER">
-                     <tooltip>
-                        <Tooltip text="Mean Absolute Error. Range: 0 to infinity. Lower is better. 0 means perfect reconstruction. Easier to read than MSE because it reflects average absolute pixel error." />
-                     </tooltip>
-                  </Label>
-                  <TextField fx:id="qualityMAE" editable="false"
-                             GridPane.columnIndex="4" GridPane.rowIndex="1">
-                     <tooltip>
-                        <Tooltip text="Mean Absolute Error. Best value is 0. Roughly describes the average RGB intensity difference per compared value." />
-                     </tooltip>
-                  </TextField>
-                  <!-- Row 2: SAE | PSNR -->
-                  <Label text="SAE" GridPane.columnIndex="1" GridPane.rowIndex="2" GridPane.valignment="CENTER">
-                     <tooltip>
-                        <Tooltip text="Sum of Absolute Errors. Range: 0 to infinity. Lower is better. 0 means no total difference at all. This value grows with both image size and distortion." />
-                     </tooltip>
-                  </Label>
-                  <TextField fx:id="qualitySAE" editable="false"
-                             GridPane.columnIndex="2" GridPane.rowIndex="2">
-                     <tooltip>
-                        <Tooltip text="Sum of Absolute Errors. Best value is 0. Unlike MSE and MAE, this total depends on image size, so it is best used for comparing runs on the same image." />
-                     </tooltip>
-                  </TextField>
-                  <Label text="PSNR" GridPane.columnIndex="3" GridPane.rowIndex="2" GridPane.valignment="CENTER">
-                     <tooltip>
-                        <Tooltip text="Peak Signal-to-Noise Ratio in dB. Higher is better. Typical interpretation: above 40 dB is very good, 30-40 dB is decent, below 30 dB usually means visible loss. Infinity means identical images." />
-                     </tooltip>
-                  </Label>
-                  <TextField fx:id="qualityPSNR" editable="false"
-                             GridPane.columnIndex="4" GridPane.rowIndex="2">
-                     <tooltip>
-                        <Tooltip text="Peak Signal-to-Noise Ratio. Higher is better. Infinity is perfect. Around 40 dB or more is usually visually strong quality; lower values indicate more visible degradation." />
-                     </tooltip>
-                  </TextField>
-               </children>
-            </GridPane>
-            <GridPane alignment="CENTER" hgap="5.0" layoutX="10.0" layoutY="10.0" styleClass="background" vgap="5.0">
-               <columnConstraints>
-                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-               </columnConstraints>
-               <rowConstraints>
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-               </rowConstraints>
-               <children>
-                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Current Result" GridPane.columnIndex="1">
-                     <font>
-                        <Font name="System Bold" size="14.0" />
-                     </font>
-                  </Text>
-                  <Button mnemonicParsing="false" onAction="#showRedModified" prefWidth="100.0" text="Red" GridPane.rowIndex="1" />
-                  <Button mnemonicParsing="false" onAction="#showBlueModified" prefWidth="100.0" text="Blue" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-                  <Button mnemonicParsing="false" onAction="#showGreenModified" prefWidth="100.0" text="Green" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                  <Button mnemonicParsing="false" onAction="#showYModified" prefWidth="100.0" text="Y" GridPane.rowIndex="2" />
-                  <Button mnemonicParsing="false" onAction="#showCbModified" prefWidth="100.0" text="Cb" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                  <Button mnemonicParsing="false" onAction="#showCrModified" prefWidth="100.0" text="Cr" GridPane.columnIndex="2" GridPane.rowIndex="2" />
-                  <Button mnemonicParsing="false" onAction="#showRGBModified" prefWidth="100.0" text="Show Result" />
-               </children>
-               <padding>
-                  <Insets left="5.0" right="5.0" />
-               </padding>
-            </GridPane>
-         </children>
-         <BorderPane.margin>
-            <Insets />
-         </BorderPane.margin>
-         <padding>
-            <Insets bottom="5.0" />
-         </padding>
-      </VBox>
+            </VBox>
+         </content>
+      </ScrollPane>
    </center>
 </BorderPane>
