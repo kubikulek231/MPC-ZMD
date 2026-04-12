@@ -9,6 +9,7 @@
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.GridPane?>
@@ -213,6 +214,160 @@
                                     </TextField>
                                  </children>
                               </GridPane>
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+
+                  <Separator />
+                  <Label styleClass="card-title" text="Watermarking" style="-fx-font-size: 18px;" />
+                  <Text fx:id="wmWorkflowStatus" styleClass="workflow-hint" wrappingWidth="700" text="Step 1: Load an image above, then convert to YCbCr. Step 2: Load a watermark image. Step 3: Embed (LSB or DCT). Step 4: Convert back to RGB. Step 5: Apply attacks. Step 6: Convert to YCbCr again, then extract." />
+
+                  <HBox spacing="14.0">
+                     <children>
+                        <VBox spacing="10.0" styleClass="card">
+                           <children>
+                              <Label styleClass="card-title" text="Watermark Image" />
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Button fx:id="btnLoadWatermark" mnemonicParsing="false" onAction="#loadWatermark" styleClass="primary-button" text="Load Watermark" />
+                                    <Label fx:id="wmStatusLabel" text="No watermark loaded" />
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Button fx:id="btnShowWatermark" mnemonicParsing="false" onAction="#showWatermark" text="Show Watermark" />
+                                    <Button fx:id="btnShowExtracted" mnemonicParsing="false" onAction="#showExtractedWatermark" text="Show Extracted" />
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <CheckBox fx:id="wmMultiInsert" mnemonicParsing="false" styleClass="soft-check" text="Multi-insert (tile)">
+                                       <tooltip><Tooltip text="Tile the watermark across the entire channel for redundancy (majority voting on extract)" /></tooltip>
+                                    </CheckBox>
+                                 </children>
+                              </HBox>
+                           </children>
+                           <HBox.hgrow>
+                              <Priority fx:constant="ALWAYS" />
+                           </HBox.hgrow>
+                        </VBox>
+                     </children>
+                  </HBox>
+
+                  <HBox spacing="14.0">
+                     <children>
+                        <VBox spacing="10.0" styleClass="card">
+                           <children>
+                              <Label styleClass="card-title" text="LSB Watermark (Spatial)" />
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Label text="Channel:" />
+                                    <ComboBox fx:id="wmLsbChannel" prefWidth="100.0" promptText="Y">
+                                       <tooltip><Tooltip text="YCbCr channel to embed the watermark into" /></tooltip>
+                                    </ComboBox>
+                                    <Label text="Bit plane (h):" />
+                                    <Spinner fx:id="wmLsbBitPlane" editable="true" prefWidth="70.0">
+                                       <tooltip><Tooltip text="Bit plane depth (0 = LSB, 7 = MSB). Lower = less visible, higher = more robust" /></tooltip>
+                                    </Spinner>
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Label text="Key:" />
+                                    <TextField fx:id="wmLsbKey" prefWidth="80.0" text="42">
+                                       <tooltip><Tooltip text="Permutation seed for scrambling watermark bits (any integer)" /></tooltip>
+                                    </TextField>
+                                    <Label text="Strength:" />
+                                    <Spinner fx:id="wmLsbStrength" editable="true" prefWidth="80.0">
+                                       <tooltip><Tooltip text="Robustness parameter (0–255). Higher = more robust but more visible" /></tooltip>
+                                    </Spinner>
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Button fx:id="btnLsbEmbed" mnemonicParsing="false" onAction="#lsbEmbed" styleClass="primary-button" text="Embed LSB" />
+                                    <Button fx:id="btnLsbExtract" mnemonicParsing="false" onAction="#lsbExtract" text="Extract LSB" />
+                                 </children>
+                              </HBox>
+                           </children>
+                           <HBox.hgrow>
+                              <Priority fx:constant="ALWAYS" />
+                           </HBox.hgrow>
+                        </VBox>
+
+                        <VBox spacing="10.0" styleClass="card">
+                           <children>
+                              <Label styleClass="card-title" text="DCT Watermark (Frequency)" />
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Label text="Block:" />
+                                    <Spinner fx:id="wmDctBlock" prefWidth="70.0">
+                                       <tooltip><Tooltip text="DCT block size for frequency-domain embedding" /></tooltip>
+                                    </Spinner>
+                                    <Label text="Coeff 1 (u1,v1):" />
+                                    <Spinner fx:id="wmDctU1" editable="true" prefWidth="60.0">
+                                       <tooltip><Tooltip text="Row index of first DCT coefficient (0–63)" /></tooltip>
+                                    </Spinner>
+                                    <Spinner fx:id="wmDctV1" editable="true" prefWidth="60.0">
+                                       <tooltip><Tooltip text="Column index of first DCT coefficient (0–63)" /></tooltip>
+                                    </Spinner>
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Label text="Coeff 2 (u2,v2):" />
+                                    <Spinner fx:id="wmDctU2" editable="true" prefWidth="60.0">
+                                       <tooltip><Tooltip text="Row index of second DCT coefficient (0–63)" /></tooltip>
+                                    </Spinner>
+                                    <Spinner fx:id="wmDctV2" editable="true" prefWidth="60.0">
+                                       <tooltip><Tooltip text="Column index of second DCT coefficient (0–63)" /></tooltip>
+                                    </Spinner>
+                                    <Label text="Depth (h):" />
+                                    <TextField fx:id="wmDctDepth" prefWidth="60.0" text="50">
+                                       <tooltip><Tooltip text="Robustness depth. Higher = more robust but more distortion" /></tooltip>
+                                    </TextField>
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Button fx:id="btnDctEmbed" mnemonicParsing="false" onAction="#dctEmbed" styleClass="primary-button" text="Embed DCT" />
+                                    <Button fx:id="btnDctExtract" mnemonicParsing="false" onAction="#dctExtract" text="Extract DCT" />
+                                 </children>
+                              </HBox>
+                           </children>
+                           <HBox.hgrow>
+                              <Priority fx:constant="ALWAYS" />
+                           </HBox.hgrow>
+                        </VBox>
+                     </children>
+                  </HBox>
+
+                  <VBox spacing="10.0" styleClass="card">
+                     <children>
+                        <Label styleClass="card-title" text="Attacks on Watermarked Image" />
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                           <children>
+                              <Button fx:id="btnAttackJpeg" mnemonicParsing="false" onAction="#attackJpeg" text="JPEG Compress" />
+                              <Label text="Quality:" />
+                              <Slider fx:id="attackJpegQuality" min="0.0" max="1.0" value="0.5" prefWidth="130.0" showTickLabels="true">
+                                 <tooltip><Tooltip text="JPEG compression quality (0 = worst, 1 = best)" /></tooltip>
+                              </Slider>
+                              <Button fx:id="btnAttackPng" mnemonicParsing="false" onAction="#attackPng" text="PNG Compress" />
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                           <children>
+                              <Button fx:id="btnAttackRotate45" mnemonicParsing="false" onAction="#attackRotate45" text="Rotate 45°" />
+                              <Button fx:id="btnAttackRotate90" mnemonicParsing="false" onAction="#attackRotate90" text="Rotate 90°" />
+                              <Button fx:id="btnAttackResize75" mnemonicParsing="false" onAction="#attackResize75" text="Resize 75%" />
+                              <Button fx:id="btnAttackResize50" mnemonicParsing="false" onAction="#attackResize50" text="Resize 50%" />
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                           <children>
+                              <Button fx:id="btnAttackMirror" mnemonicParsing="false" onAction="#attackMirror" text="Mirror" />
+                              <Button fx:id="btnAttackCrop" mnemonicParsing="false" onAction="#attackCrop" text="Crop 10%" />
                            </children>
                         </HBox>
                      </children>

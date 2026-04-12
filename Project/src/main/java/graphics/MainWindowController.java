@@ -1,11 +1,13 @@
 package graphics;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ResourceBundle;
 
+import Jama.Matrix;
 import core.FileBindings;
 import core.Helper;
 import enums.QualityType;
@@ -21,6 +23,7 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
@@ -30,6 +33,9 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.scene.text.Text;
 import javafx.util.Pair;
+import watermark.DctWatermark;
+import watermark.LsbWatermark;
+import watermark.WatermarkAttacks;
 
 public class MainWindowController implements Initializable {
 
@@ -39,6 +45,12 @@ public class MainWindowController implements Initializable {
     private boolean transformed = false;
     private boolean quantized = false;
     private boolean rgbReconstructed = false;
+
+    // Watermark state
+    private BufferedImage watermarkImage = null;
+    private BufferedImage extractedWatermark = null;
+    private boolean lsbEmbedded = false;
+    private boolean dctEmbedded = false;
 
     @FXML Button buttonInverseQuantize;
     @FXML Button buttonInverseToRGB;
@@ -58,6 +70,39 @@ public class MainWindowController implements Initializable {
 
     @FXML Slider quantizeQuality;
     @FXML TextField quantizeQualityField;
+
+    // Watermark controls
+    @FXML Label wmStatusLabel;
+    @FXML CheckBox wmMultiInsert;
+    @FXML ComboBox<String> wmLsbChannel;
+    @FXML Spinner<Integer> wmLsbBitPlane;
+    @FXML TextField wmLsbKey;
+    @FXML Spinner<Integer> wmLsbStrength;
+    @FXML Spinner<Integer> wmDctBlock;
+    @FXML Spinner<Integer> wmDctU1;
+    @FXML Spinner<Integer> wmDctV1;
+    @FXML Spinner<Integer> wmDctU2;
+    @FXML Spinner<Integer> wmDctV2;
+    @FXML TextField wmDctDepth;
+    @FXML Slider attackJpegQuality;
+    @FXML Text wmWorkflowStatus;
+
+    // Watermark buttons
+    @FXML Button btnLoadWatermark;
+    @FXML Button btnShowWatermark;
+    @FXML Button btnShowExtracted;
+    @FXML Button btnLsbEmbed;
+    @FXML Button btnLsbExtract;
+    @FXML Button btnDctEmbed;
+    @FXML Button btnDctExtract;
+    @FXML Button btnAttackJpeg;
+    @FXML Button btnAttackPng;
+    @FXML Button btnAttackRotate45;
+    @FXML Button btnAttackRotate90;
+    @FXML Button btnAttackResize75;
+    @FXML Button btnAttackResize50;
+    @FXML Button btnAttackMirror;
+    @FXML Button btnAttackCrop;
 
     @FXML CheckBox shadesOfGrey;
     @FXML CheckBox showSteps;
@@ -88,7 +133,32 @@ public class MainWindowController implements Initializable {
 
         BufferedImage defaultImage = Dialogs.loadImageFromPath(FileBindings.DEFAULT_IMAGE);
         this.process = new ProcessImage(defaultImage);
+
+        // Watermark control defaults.
+        wmLsbChannel.getItems().setAll("Y", "Cb", "Cr");
+        wmLsbChannel.getSelectionModel().select("Y");
+        wmLsbBitPlane.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 7, 0));
+        wmLsbStrength.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 255, 0));
+
+        ObservableList<Integer> dctBlocks = FXCollections.observableArrayList(2, 4, 8, 16, 32, 64);
+        SpinnerValueFactory<Integer> dctBlockSvf = new SpinnerValueFactory.ListSpinnerValueFactory<>(dctBlocks);
+        dctBlockSvf.setValue(8);
+        wmDctBlock.setValueFactory(dctBlockSvf);
+
+        wmDctU1.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 63, 3));
+        wmDctV1.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 63, 1));
+        wmDctU2.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 63, 4));
+        wmDctV2.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 63, 1));
+
+        // Make editable spinners commit typed values on focus loss.
+        for (Spinner<?> s : new Spinner<?>[]{ wmLsbBitPlane, wmLsbStrength, wmDctU1, wmDctV1, wmDctU2, wmDctV2 }) {
+            s.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
+                if (!isFocused) s.commitValue();
+            });
+        }
+
         updateWorkflowControls();
+        updateWatermarkControls();
     }
 
     // ===== Window Controls =====
@@ -218,6 +288,7 @@ public class MainWindowController implements Initializable {
         quantized = false;
         process.convertToYCbCr();
         updateWorkflowControls();
+        updateWatermarkControls();
         if (showSteps.isSelected()) {
             Dialogs.showMultipleImageInWindow("YCbCr channels", false, true,
                     new Pair<>(process.showOneColorImageFromYCbCr(process.getWorkingYCbCr().getY()),  "Y"),
@@ -236,6 +307,7 @@ public class MainWindowController implements Initializable {
         process.convertToRGB();
         rgbReconstructed = true;
         updateWorkflowControls();
+        updateWatermarkControls();
         if (showSteps.isSelected()) {
             Dialogs.showImageInWindow(process.getImageFromRGB(), "RGB (after inverse)");
         }
@@ -334,6 +406,7 @@ public class MainWindowController implements Initializable {
         rgbReconstructed = false;
         clearPSNRFields();
         updateWorkflowControls();
+        updateWatermarkControls();
     }
 
     private void updateWorkflowControls() {
@@ -377,5 +450,185 @@ public class MainWindowController implements Initializable {
         }
 
         workflowStatus.setText("YCbCr is ready. You can now downsample, transform, quantize, inspect channels, or convert back to RGB.");
+    }
+
+    private void updateWatermarkControls() {
+        boolean wmLoaded = watermarkImage != null;
+        boolean canEmbed = wmLoaded && ycbcrActive && !sampled && !transformed && !quantized;
+        boolean canExtract = wmLoaded && ycbcrActive && !sampled && !transformed && !quantized;
+        boolean wmEmbedded = lsbEmbedded || dctEmbedded;
+
+        btnShowWatermark.setDisable(!wmLoaded);
+        btnShowExtracted.setDisable(extractedWatermark == null);
+
+        btnLsbEmbed.setDisable(!canEmbed);
+        btnLsbExtract.setDisable(!canExtract);
+        btnDctEmbed.setDisable(!canEmbed);
+        btnDctExtract.setDisable(!canExtract);
+
+        boolean canAttack = wmEmbedded && !ycbcrActive;
+        btnAttackJpeg.setDisable(!canAttack);
+        btnAttackPng.setDisable(!canAttack);
+        btnAttackRotate45.setDisable(!canAttack);
+        btnAttackRotate90.setDisable(!canAttack);
+        btnAttackResize75.setDisable(!canAttack);
+        btnAttackResize50.setDisable(!canAttack);
+        btnAttackMirror.setDisable(!canAttack);
+        btnAttackCrop.setDisable(!canAttack);
+
+        if (wmWorkflowStatus == null) return;
+
+        if (!wmLoaded) {
+            wmWorkflowStatus.setText("Step 1: Load an image above, convert to YCbCr. Then load a watermark image.");
+        } else if (!ycbcrActive) {
+            wmWorkflowStatus.setText("Step 2: Convert the working image to YCbCr (above) before embedding.");
+        } else if (sampled || transformed || quantized) {
+            wmWorkflowStatus.setText("Undo sampling/transform/quantization first \u2014 watermark operates on raw YCbCr channels.");
+        } else if (!wmEmbedded) {
+            wmWorkflowStatus.setText("Step 3: Embed a watermark using LSB or DCT, then convert back to RGB.");
+        } else if (ycbcrActive) {
+            wmWorkflowStatus.setText("Step 4: Convert back to RGB (above) to see the watermarked image and run attacks.");
+        } else {
+            wmWorkflowStatus.setText("Step 5: Apply attacks below, then convert attacked image to YCbCr and extract the watermark.");
+        }
+    }
+
+    // ===== Watermark Handlers =====
+
+    public void loadWatermark() {
+        File file = Dialogs.openFile();
+        if (file == null) return;
+        watermarkImage = Dialogs.loadImageFromPath(file);
+        wmStatusLabel.setText(watermarkImage.getWidth() + "x" + watermarkImage.getHeight() + " loaded");
+        updateWatermarkControls();
+    }
+
+    public void showWatermark() {
+        if (watermarkImage == null) {
+            new Alert(AlertType.INFORMATION, "Load a watermark image first.").showAndWait();
+            return;
+        }
+        Dialogs.showImageInWindow(watermarkImage, "Watermark");
+    }
+
+    public void showExtractedWatermark() {
+        if (extractedWatermark == null) {
+            new Alert(AlertType.INFORMATION, "Extract a watermark first.").showAndWait();
+            return;
+        }
+        Dialogs.showImageInWindow(extractedWatermark, "Extracted Watermark");
+    }
+
+    private Matrix getSelectedLsbChannel() {
+        String sel = wmLsbChannel.getSelectionModel().getSelectedItem();
+        return switch (sel) {
+            case "Cb" -> process.getWorkingYCbCr().getCb();
+            case "Cr" -> process.getWorkingYCbCr().getCr();
+            default -> process.getWorkingYCbCr().getY();
+        };
+    }
+
+    public void lsbEmbed() {
+        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
+        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        int h = wmLsbBitPlane.getValue();
+        int key = Integer.parseInt(wmLsbKey.getText());
+        int strength = wmLsbStrength.getValue();
+        boolean multi = wmMultiInsert.isSelected();
+        Matrix channel = getSelectedLsbChannel();
+        LsbWatermark.embed(channel, watermarkImage, h, key, strength, multi);
+        lsbEmbedded = true;
+        updateWatermarkControls();
+        new Alert(AlertType.INFORMATION, "LSB watermark embedded into " + wmLsbChannel.getValue() + " at bit plane " + h + ".").showAndWait();
+    }
+
+    public void lsbExtract() {
+        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load the original watermark first (for dimensions).").showAndWait(); return; }
+        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        int h = wmLsbBitPlane.getValue();
+        int key = Integer.parseInt(wmLsbKey.getText());
+        boolean multi = wmMultiInsert.isSelected();
+        Matrix channel = getSelectedLsbChannel();
+        extractedWatermark = LsbWatermark.extract(channel, watermarkImage.getWidth(), watermarkImage.getHeight(), h, key, multi);
+        updateWatermarkControls();
+        Dialogs.showImageInWindow(extractedWatermark, "Extracted LSB Watermark");
+    }
+
+    public void dctEmbed() {
+        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
+        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        int block = wmDctBlock.getValue();
+        int u1 = wmDctU1.getValue(), v1 = wmDctV1.getValue();
+        int u2 = wmDctU2.getValue(), v2 = wmDctV2.getValue();
+        double depth = Double.parseDouble(wmDctDepth.getText());
+        boolean multi = wmMultiInsert.isSelected();
+        Matrix yChannel = process.getWorkingYCbCr().getY();
+        DctWatermark.embed(yChannel, watermarkImage, block, u1, v1, u2, v2, depth, multi);
+        dctEmbedded = true;
+        updateWatermarkControls();
+        new Alert(AlertType.INFORMATION, "DCT watermark embedded into Y channel.").showAndWait();
+    }
+
+    public void dctExtract() {
+        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load original watermark first (for dimensions).").showAndWait(); return; }
+        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        int block = wmDctBlock.getValue();
+        int u1 = wmDctU1.getValue(), v1 = wmDctV1.getValue();
+        int u2 = wmDctU2.getValue(), v2 = wmDctV2.getValue();
+        boolean multi = wmMultiInsert.isSelected();
+        Matrix yChannel = process.getWorkingYCbCr().getY();
+        extractedWatermark = DctWatermark.extract(yChannel, watermarkImage.getWidth(), watermarkImage.getHeight(), block, u1, v1, u2, v2, multi);
+        updateWatermarkControls();
+        Dialogs.showImageInWindow(extractedWatermark, "Extracted DCT Watermark");
+    }
+
+    // ===== Attack Handlers =====
+    // Attacks operate on the current watermarked image (RGB reconstruction).
+    // They replace the working RGB and show both attacked image and extraction attempt.
+
+    private BufferedImage getCurrentRgbImage() {
+        return process.getImageFromRGB();
+    }
+
+    private void applyAttack(BufferedImage attacked, String name) {
+        Dialogs.showImageInWindow(attacked, "After " + name);
+        process.loadImage(attacked);
+        lsbEmbedded = false;
+        dctEmbedded = false;
+        resetWorkflow();
+        new Alert(AlertType.INFORMATION, name + " applied. The attacked image is now the working image.\nConvert to YCbCr to try extracting the watermark.").showAndWait();
+    }
+
+    public void attackJpeg() {
+        float q = (float) attackJpegQuality.getValue();
+        applyAttack(WatermarkAttacks.jpegCompress(getCurrentRgbImage(), q), "JPEG Compress (q=" + q + ")");
+    }
+
+    public void attackPng() {
+        applyAttack(WatermarkAttacks.pngCompress(getCurrentRgbImage()), "PNG Compress");
+    }
+
+    public void attackRotate45() {
+        applyAttack(WatermarkAttacks.rotate(getCurrentRgbImage(), 45), "Rotate 45°");
+    }
+
+    public void attackRotate90() {
+        applyAttack(WatermarkAttacks.rotate(getCurrentRgbImage(), 90), "Rotate 90°");
+    }
+
+    public void attackResize75() {
+        applyAttack(WatermarkAttacks.resize(getCurrentRgbImage(), 0.75), "Resize 75%");
+    }
+
+    public void attackResize50() {
+        applyAttack(WatermarkAttacks.resize(getCurrentRgbImage(), 0.50), "Resize 50%");
+    }
+
+    public void attackMirror() {
+        applyAttack(WatermarkAttacks.mirror(getCurrentRgbImage()), "Mirror");
+    }
+
+    public void attackCrop() {
+        applyAttack(WatermarkAttacks.crop(getCurrentRgbImage(), 0.10), "Crop 10%");
     }
 }

@@ -44,6 +44,16 @@ public class ProcessImage {
         }
     }
 
+    // load an already-in-memory image (used after attacks)
+    public void loadImage(BufferedImage image) {
+        this.originalImage = image;
+        if (originalImage != null) {
+            this.imageHeight = originalImage.getHeight();
+            this.imageWidth = originalImage.getWidth();
+            extractRGBMatrices();
+        }
+    }
+
     private void extractRGBMatrices() {
         originalState = new ImageState(imageWidth, imageHeight);
         workingState = new ImageState(imageWidth, imageHeight);

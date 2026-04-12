@@ -11,4 +11,5 @@ module cz.vutbr.zmd {
     exports enums;
     exports imageProcessing;
     exports jpeg;
+    exports watermark;
 }
