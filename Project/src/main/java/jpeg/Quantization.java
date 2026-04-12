@@ -2,6 +2,7 @@ package jpeg;
 
 import Jama.Matrix;
 
+// Handles JPEG-like quantization and inverse quantization on block-transformed data.
 public class Quantization {
 
     /** Pro jasovou slozku */
@@ -38,12 +39,14 @@ public class Quantization {
 
     public static Matrix getQuantizationMatrix(int blockSize, int quality, boolean matrixY) {
         if (quality == 100) {
+            // At quality 100 we use a matrix of ones -> quantization becomes identity.
             return new Matrix(blockSize, blockSize, 1);
         }
 
+        // Use luma matrix for Y, chroma matrix for Cb/Cr.
         double[][] base = matrixY ? quantizationMatrix8Y : quantizationMatrix8C;
 
-        // Resize 8x8 base matrix to blockSize x blockSize using nearest-neighbor
+        // Resize 8x8 base matrix to blockSize x blockSize using nearest-neighbor.
         double[][] resized = new double[blockSize][blockSize];
         for (int i = 0; i < blockSize; i++) {
             for (int j = 0; j < blockSize; j++) {
@@ -51,7 +54,7 @@ public class Quantization {
             }
         }
 
-        // Compute alpha from quality factor
+        // JPEG-style quality scaling: lower quality means stronger quantization.
         double alpha;
         if (quality < 50) {
             alpha = 50.0 / quality;
@@ -59,7 +62,7 @@ public class Quantization {
             alpha = 2.0 - 2.0 * quality / 100.0;
         }
 
-        // Apply alpha
+        // Scale every quantization step by alpha.
         for (int i = 0; i < blockSize; i++) {
             for (int j = 0; j < blockSize; j++) {
                 resized[i][j] = resized[i][j] * alpha;
@@ -69,8 +72,10 @@ public class Quantization {
         return new Matrix(resized);
     }
 
+    // Forward quantization per block: divide each coefficient by the quantization step and round it.
     public static Matrix quantize(Matrix input, int blockSize, int quality, boolean matrixY) {
         if (quality == 100) {
+            // No information loss at quality 100 in this implementation.
             return input.copy();
         }
         Matrix quantMatrix = getQuantizationMatrix(blockSize, quality, matrixY);
@@ -87,11 +92,13 @@ public class Quantization {
 
                 for (int i = 0; i < blockSize; i++) {
                     for (int j = 0; j < blockSize; j++) {
+                        // Forward quantization: coefficient / step, then rounded -> lossy stage.
                         double value = blockData[i][j] / quantData[i][j];
                         quantized[i][j] = customRound(value);
                     }
                 }
 
+                // Write processed block back to the same position in the output matrix.
                 result.setMatrix(row, row + blockSize - 1, col, col + blockSize - 1, new Matrix(quantized));
             }
         }
@@ -99,6 +106,7 @@ public class Quantization {
         return result;
     }
 
+    // Inverse quantization per block: multiply by the same quantization steps.
     public static Matrix inverseQuantize(Matrix input, int blockSize, int quality, boolean matrixY) {
         if (quality == 100) {
             return input.copy();
@@ -119,10 +127,14 @@ public class Quantization {
         return result;
     }
 
+    // Project-specific rounding strategy for quantized coefficients.
     private static double customRound(double value) {
+        // Small coefficients are treated as visual noise and forced to zero.
+        // This makes the compression stronger but also more lossy.
         if (value >= -0.1 && value <= 0.1) {
             return 0.0;
         } else {
+            // Keep one decimal for stronger compression than full precision coefficients.
             return Math.round(value * 10.0) / 10.0;
         }
     }
