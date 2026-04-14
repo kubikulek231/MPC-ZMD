@@ -3,6 +3,8 @@ module cz.vutbr.zmd {
     requires javafx.fxml;
     requires transitive java.desktop;
     requires transitive jama;
+    requires org.apache.poi.poi;
+    requires org.apache.poi.ooxml;
 
     opens core to javafx.graphics;
     opens graphics;

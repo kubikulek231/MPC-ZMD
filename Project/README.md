@@ -1,59 +1,44 @@
-# ZMD-cv1
+# MPC-ZMD — Digital Watermarking Toolkit
 
-## Requirements
+JavaFX application for embedding and extracting digital watermarks in images, with automated robustness testing against common attacks.
 
-- **Java SDK 25 SE** — must be installed and available on the system `PATH`
-- **Apache Maven** — must be installed and available on the system `PATH`
-- **VS Code** with the [Extension Pack for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack) (Microsoft)
+## Watermarking Methods
 
-### Verify prerequisites (PowerShell)
+- **LSB** — Least Significant Bit substitution (spatial domain, fragile)
+- **DCT** — Discrete Cosine Transform domain embedding (block-based, semi-robust)
+- **Spread Spectrum** — Additive spread spectrum in spatial domain (Cox et al. 1997)
+- **Patchwork** — Statistical patchwork method (Bender et al. 1996)
 
-```powershell
-java -version   # should report: openjdk 25 ...
-mvn -version    # should report: Apache Maven ...
-```
+## Attacks
 
----
+JPEG compression (10–90%), PNG re-compression, rotation (45°/90°), resize (50%/75%), mirror, crop (10%).
 
-## Running from the Terminal (Maven)
+## Pre-generated Report
 
-### 1. Resolve dependencies (first time only)
+A complete Excel report with all 4 methods × 3 parameter configs × 13 attacks (156 scenarios total) with embedded images is available at:
 
-```powershell
-mvn dependency:resolve
-```
+**[`watermark-report-all.xlsx`](watermark-report-all.xlsx)**
 
-### 2. Run the application
+Each sheet (LSB, DCT, Spread Spectrum, Patchwork) shows how different embedding strengths survive each attack.
+
+## Running
+
+### Prerequisites
+
+- **Java SDK 25+**, **Apache Maven** on `PATH`
+
+### Run the app
 
 ```powershell
 mvn javafx:run
 ```
 
----
+### Run tests (generates xlsx report in `target/`)
 
-## Running from VS Code (Microsoft Java Extension)
-
-### 1. Install the Extension Pack for Java
-
-Open the Extensions view (`Ctrl+Shift+X`), search for **Extension Pack for Java** by Microsoft and install it.
-
-### 2. Open the project
-
-Open the `ZMD-cv1` folder in VS Code (`File > Open Folder...`).  
-The Java extension will automatically detect the Maven project and resolve the classpath.
-
-### 3. Configure the JDK
-
-The project is configured to use whichever `java` is on your `PATH`.  
-To confirm VS Code picks it up, open the Command Palette (`Ctrl+Shift+P`) and run:
-
-```
-Java: Configure Java Runtime
+```powershell
+mvn test -Dtest=tests.ExportPipelineTest
 ```
 
-Make sure **JavaSE-25** is listed under *Project JDKs*. If not, point it to your JDK installation directory.
+### VS Code
 
-### 4. Run the application
-
-- Press **F5** (or go to *Run > Start Debugging*) to launch the `Launch App` configuration.
-- Alternatively, open `src/main/java/app/Main.java` and click the **Run** code lens that appears above the `main` method.
+Open the project folder, install [Extension Pack for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack), press **F5**.

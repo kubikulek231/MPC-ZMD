@@ -52,7 +52,9 @@ public class SpreadSpectrumWatermark {
     }
 
     // Embed watermark into a channel (Y recommended).
-    // alpha: embedding strength -- higher = more robust but more visible. Try 5-30.
+    // alpha: embedding strength -- higher = more robust but more visible.
+    //   Needed: alpha > std(pixel) / sqrt(chips_per_bit) for reliable blind extraction.
+    //   For typical 512x512 image with 64x64 watermark: alpha ~10-50 works well.
     // key: seed for the pseudo-random chip sequence.
     public static void embed(Matrix channel, BufferedImage watermark, double alpha, int key, boolean multiInsert) {
         int rows = channel.getRowDimension();
@@ -115,6 +117,8 @@ public class SpreadSpectrumWatermark {
     }
 
     // Extract watermark by correlating with the same PN sequence.
+    // Uses mean-removed correlation: subtracts the channel mean before correlating
+    // to eliminate the DC bias that would otherwise drown out the watermark signal.
     public static BufferedImage extract(Matrix channel, int wmWidth, int wmHeight,
                                         double alpha, int key, boolean multiInsert) {
         int rows = channel.getRowDimension();
@@ -124,6 +128,13 @@ public class SpreadSpectrumWatermark {
 
         int chipsPerBit = totalPixels / wmSize;
         if (chipsPerBit < 1) chipsPerBit = 1;
+
+        // Compute channel mean to remove DC bias before correlation.
+        double channelMean = 0;
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+                channelMean += channel.get(r, c);
+        channelMean /= totalPixels;
 
         Random rng = new Random(key);
         int[] pixelOrder = new int[totalPixels];
@@ -149,7 +160,9 @@ public class SpreadSpectrumWatermark {
             int row = idx / cols;
             int col = idx % cols;
             double noise = noiseRng.nextGaussian();
-            correlation[b] += channel.get(row, col) * noise;
+            // Mean-removed correlation: (pixel - mean) * noise
+            // This removes the DC component that would dominate the raw correlation.
+            correlation[b] += (channel.get(row, col) - channelMean) * noise;
             count[b]++;
         }
 

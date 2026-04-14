@@ -19,7 +19,10 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -32,6 +35,19 @@ import javafx.util.Pair;
 
 public class Dialogs {
     private static ArrayList<Stage> openStages = new ArrayList<>();
+
+    /** Create an Alert that already carries the app favicon. */
+    public static Alert alert(AlertType type, String message) {
+        Alert a = new Alert(type, message);
+        styleDialog(a);
+        return a;
+    }
+
+    /** Add app favicon to any Dialog / Alert. */
+    public static void styleDialog(Dialog<?> dialog) {
+        ((Stage) dialog.getDialogPane().getScene().getWindow())
+                .getIcons().add(FileBindings.favicon);
+    }
 
     /**
      * Show buffered image in new window.

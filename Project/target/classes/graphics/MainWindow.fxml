@@ -431,9 +431,9 @@
                            <children>
                               <Button fx:id="btnAttackJpeg" mnemonicParsing="false" onAction="#attackJpeg" text="JPEG Compress" />
                               <Label text="Quality:" />
-                              <Slider fx:id="attackJpegQuality" min="0.0" max="1.0" value="0.5" prefWidth="130.0" showTickLabels="true">
-                                 <tooltip><Tooltip text="JPEG compression quality (0 = worst, 1 = best)" /></tooltip>
-                              </Slider>
+                              <TextField fx:id="attackJpegQuality" prefWidth="50.0" text="50">
+                                 <tooltip><Tooltip text="JPEG compression quality (1 = worst, 100 = best/original)" /></tooltip>
+                              </TextField>
                               <Button fx:id="btnAttackPng" mnemonicParsing="false" onAction="#attackPng" text="PNG Compress" />
                            </children>
                         </HBox>
@@ -449,6 +449,29 @@
                            <children>
                               <Button fx:id="btnAttackMirror" mnemonicParsing="false" onAction="#attackMirror" text="Mirror" />
                               <Button fx:id="btnAttackCrop" mnemonicParsing="false" onAction="#attackCrop" text="Crop 10%" />
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+
+                  <Separator />
+                  <VBox spacing="10.0" styleClass="card">
+                     <children>
+                        <Label styleClass="card-title" text="Automated Report Export" />
+                        <Text styleClass="workflow-hint" wrappingWidth="650" text="Export All: runs all predefined scenarios (4 methods x 3 configs x 13 attacks) using default images. Export Custom: runs the selected method with current UI params against the chosen attack (or all attacks)." />
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                           <children>
+                              <Button mnemonicParsing="false" onAction="#exportAllXlsx" styleClass="primary-button" text="Export All Scenarios" />
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                           <children>
+                              <Label text="Method:" />
+                              <ComboBox fx:id="exportMethod" prefWidth="160.0" />
+                              <Label text="Attack:" />
+                              <ComboBox fx:id="exportAttack" prefWidth="160.0" />
+                              <Button mnemonicParsing="false" onAction="#runExport" text="Run Pipeline" />
+                              <Button mnemonicParsing="false" onAction="#exportCustomXlsx" text="Export Custom" />
                            </children>
                         </HBox>
                      </children>

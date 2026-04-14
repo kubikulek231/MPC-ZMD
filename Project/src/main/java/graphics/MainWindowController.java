@@ -7,6 +7,8 @@ import java.text.NumberFormat;
 import java.util.ResourceBundle;
 
 import Jama.Matrix;
+import core.ExportPipeline;
+import core.ExportScenarios;
 import core.FileBindings;
 import core.Helper;
 import enums.QualityType;
@@ -17,7 +19,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -29,6 +30,7 @@ import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Pair;
@@ -91,7 +93,7 @@ public class MainWindowController implements Initializable {
     @FXML TextField wmSsKey;
     @FXML TextField wmPwDelta;
     @FXML TextField wmPwKey;
-    @FXML Slider attackJpegQuality;
+    @FXML TextField attackJpegQuality;
     @FXML Text wmWorkflowStatus;
 
     // Watermark buttons
@@ -119,6 +121,9 @@ public class MainWindowController implements Initializable {
     @FXML CheckBox shadesOfGrey;
     @FXML CheckBox showSteps;
     @FXML CheckBox guidedMode;
+
+    @FXML ComboBox<String> exportMethod;
+    @FXML ComboBox<String> exportAttack;
 
     @FXML Spinner<Integer> transformBlock;
     @FXML ComboBox<TransformType> transformType;
@@ -180,6 +185,13 @@ public class MainWindowController implements Initializable {
                 if (!isFocused) s.commitValue();
             });
         }
+
+        // Export pipeline combo boxes.
+        exportMethod.getItems().setAll("LSB", "DCT", "Spread Spectrum", "Patchwork");
+        exportMethod.getSelectionModel().select("LSB");
+        exportAttack.getItems().setAll("All Attacks", "None", "JPEG Compress", "PNG Compress",
+                "Rotate 45°", "Rotate 90°", "Resize 75%", "Resize 50%", "Mirror", "Crop 10%");
+        exportAttack.getSelectionModel().select("All Attacks");
 
         updateWorkflowControls();
         updateWatermarkControls();
@@ -408,11 +420,11 @@ public class MainWindowController implements Initializable {
     /** Calculate and display MSE, MAE, SAE, and PSNR for the RGB image. */
     public void countPSNR() {
         if (ycbcrActive) {
-            new Alert(AlertType.INFORMATION, "Finish the YCbCr workflow and convert back to RGB first.").showAndWait();
+            Dialogs.alert(AlertType.INFORMATION, "Finish the YCbCr workflow and convert back to RGB first.").showAndWait();
             return;
         }
         if (!rgbReconstructed) {
-            new Alert(AlertType.INFORMATION, "Run RGB -> YCbCr processing and convert back to RGB first.").showAndWait();
+            Dialogs.alert(AlertType.INFORMATION, "Run RGB -> YCbCr processing and convert back to RGB first.").showAndWait();
             return;
         }
         try {
@@ -424,7 +436,7 @@ public class MainWindowController implements Initializable {
                     ? "\u221E dB"
                     : String.format("%.2f dB", metrics[3]));
         } catch (IllegalStateException e) {
-            new Alert(AlertType.ERROR, e.getMessage()).showAndWait();
+            Dialogs.alert(AlertType.ERROR, e.getMessage()).showAndWait();
         }
     }
 
@@ -603,7 +615,7 @@ public class MainWindowController implements Initializable {
 
     public void showWatermark() {
         if (watermarkImage == null) {
-            new Alert(AlertType.INFORMATION, "Load a watermark image first.").showAndWait();
+            Dialogs.alert(AlertType.INFORMATION, "Load a watermark image first.").showAndWait();
             return;
         }
         Dialogs.showImageInWindow(watermarkImage, "Watermark");
@@ -611,7 +623,7 @@ public class MainWindowController implements Initializable {
 
     public void showExtractedWatermark() {
         if (extractedWatermark == null) {
-            new Alert(AlertType.INFORMATION, "Extract a watermark first.").showAndWait();
+            Dialogs.alert(AlertType.INFORMATION, "Extract a watermark first.").showAndWait();
             return;
         }
         Dialogs.showImageInWindow(extractedWatermark, "Extracted Watermark");
@@ -627,8 +639,8 @@ public class MainWindowController implements Initializable {
     }
 
     public void lsbEmbed() {
-        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
-        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        if (watermarkImage == null) { Dialogs.alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
+        if (!ycbcrActive) { Dialogs.alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
         int h = wmLsbBitPlane.getValue();
         int key = Integer.parseInt(wmLsbKey.getText());
         int strength = wmLsbStrength.getValue();
@@ -637,12 +649,12 @@ public class MainWindowController implements Initializable {
         LsbWatermark.embed(channel, watermarkImage, h, key, strength, multi);
         lsbEmbedded = true;
         updateWatermarkControls();
-        new Alert(AlertType.INFORMATION, "LSB watermark embedded into " + wmLsbChannel.getValue() + " at bit plane " + h + ".").showAndWait();
+        Dialogs.alert(AlertType.INFORMATION, "LSB watermark embedded into " + wmLsbChannel.getValue() + " at bit plane " + h + ".").showAndWait();
     }
 
     public void lsbExtract() {
-        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load the original watermark first (for dimensions).").showAndWait(); return; }
-        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        if (watermarkImage == null) { Dialogs.alert(AlertType.WARNING, "Load the original watermark first (for dimensions).").showAndWait(); return; }
+        if (!ycbcrActive) { Dialogs.alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
         int h = wmLsbBitPlane.getValue();
         int key = Integer.parseInt(wmLsbKey.getText());
         boolean multi = wmMultiInsert.isSelected();
@@ -653,13 +665,13 @@ public class MainWindowController implements Initializable {
     }
 
     public void dctEmbed() {
-        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
-        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        if (watermarkImage == null) { Dialogs.alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
+        if (!ycbcrActive) { Dialogs.alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
         int block = wmDctBlock.getValue();
         int u1 = wmDctU1.getValue(), v1 = wmDctV1.getValue();
         int u2 = wmDctU2.getValue(), v2 = wmDctV2.getValue();
         if (u1 >= block || v1 >= block || u2 >= block || v2 >= block) {
-            new Alert(AlertType.WARNING, "Coefficient positions must be less than block size (" + block + "). Current: (" + u1 + "," + v1 + ") and (" + u2 + "," + v2 + ").").showAndWait();
+            Dialogs.alert(AlertType.WARNING, "Coefficient positions must be less than block size (" + block + "). Current: (" + u1 + "," + v1 + ") and (" + u2 + "," + v2 + ").").showAndWait();
             return;
         }
         double depth = Double.parseDouble(wmDctDepth.getText());
@@ -676,17 +688,17 @@ public class MainWindowController implements Initializable {
         DctWatermark.embed(yChannel, watermarkImage, block, u1, v1, u2, v2, depth, multi);
         dctEmbedded = true;
         updateWatermarkControls();
-        new Alert(AlertType.INFORMATION, "DCT watermark embedded into Y channel." + sizeNote).showAndWait();
+        Dialogs.alert(AlertType.INFORMATION, "DCT watermark embedded into Y channel." + sizeNote).showAndWait();
     }
 
     public void dctExtract() {
-        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load original watermark first (for dimensions).").showAndWait(); return; }
-        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        if (watermarkImage == null) { Dialogs.alert(AlertType.WARNING, "Load original watermark first (for dimensions).").showAndWait(); return; }
+        if (!ycbcrActive) { Dialogs.alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
         int block = wmDctBlock.getValue();
         int u1 = wmDctU1.getValue(), v1 = wmDctV1.getValue();
         int u2 = wmDctU2.getValue(), v2 = wmDctV2.getValue();
         if (u1 >= block || v1 >= block || u2 >= block || v2 >= block) {
-            new Alert(AlertType.WARNING, "Coefficient positions must be less than block size (" + block + "). Current: (" + u1 + "," + v1 + ") and (" + u2 + "," + v2 + ").").showAndWait();
+            Dialogs.alert(AlertType.WARNING, "Coefficient positions must be less than block size (" + block + "). Current: (" + u1 + "," + v1 + ") and (" + u2 + "," + v2 + ").").showAndWait();
             return;
         }
         boolean multi = wmMultiInsert.isSelected();
@@ -705,8 +717,8 @@ public class MainWindowController implements Initializable {
     // ===== Spread Spectrum Handlers =====
 
     public void ssEmbed() {
-        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
-        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        if (watermarkImage == null) { Dialogs.alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
+        if (!ycbcrActive) { Dialogs.alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
         double alpha = Double.parseDouble(wmSsAlpha.getText());
         int key = Integer.parseInt(wmSsKey.getText());
         boolean multi = wmMultiInsert.isSelected();
@@ -722,12 +734,12 @@ public class MainWindowController implements Initializable {
         SpreadSpectrumWatermark.embed(yChannel, watermarkImage, alpha, key, multi);
         ssEmbedded = true;
         updateWatermarkControls();
-        new Alert(AlertType.INFORMATION, "Spread Spectrum watermark embedded into Y channel (alpha=" + alpha + ")." + sizeNote).showAndWait();
+        Dialogs.alert(AlertType.INFORMATION, "Spread Spectrum watermark embedded into Y channel (alpha=" + alpha + ")." + sizeNote).showAndWait();
     }
 
     public void ssExtract() {
-        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load original watermark first (for dimensions).").showAndWait(); return; }
-        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        if (watermarkImage == null) { Dialogs.alert(AlertType.WARNING, "Load original watermark first (for dimensions).").showAndWait(); return; }
+        if (!ycbcrActive) { Dialogs.alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
         double alpha = Double.parseDouble(wmSsAlpha.getText());
         int key = Integer.parseInt(wmSsKey.getText());
         boolean multi = wmMultiInsert.isSelected();
@@ -745,8 +757,8 @@ public class MainWindowController implements Initializable {
     // ===== Patchwork Handlers =====
 
     public void pwEmbed() {
-        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
-        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        if (watermarkImage == null) { Dialogs.alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
+        if (!ycbcrActive) { Dialogs.alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
         double delta = Double.parseDouble(wmPwDelta.getText());
         int key = Integer.parseInt(wmPwKey.getText());
         boolean multi = wmMultiInsert.isSelected();
@@ -762,12 +774,12 @@ public class MainWindowController implements Initializable {
         PatchworkWatermark.embed(yChannel, watermarkImage, delta, key, multi);
         pwEmbedded = true;
         updateWatermarkControls();
-        new Alert(AlertType.INFORMATION, "Patchwork watermark embedded into Y channel (delta=" + delta + ")." + sizeNote).showAndWait();
+        Dialogs.alert(AlertType.INFORMATION, "Patchwork watermark embedded into Y channel (delta=" + delta + ")." + sizeNote).showAndWait();
     }
 
     public void pwExtract() {
-        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load original watermark first (for dimensions).").showAndWait(); return; }
-        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        if (watermarkImage == null) { Dialogs.alert(AlertType.WARNING, "Load original watermark first (for dimensions).").showAndWait(); return; }
+        if (!ycbcrActive) { Dialogs.alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
         double delta = Double.parseDouble(wmPwDelta.getText());
         int key = Integer.parseInt(wmPwKey.getText());
         boolean multi = wmMultiInsert.isSelected();
@@ -801,8 +813,9 @@ public class MainWindowController implements Initializable {
     }
 
     public void attackJpeg() {
-        float q = (float) attackJpegQuality.getValue();
-        applyAttack(WatermarkAttacks.jpegCompress(getCurrentRgbImage(), q), "JPEG Compress (q=" + q + ")");
+        int qInt = Integer.parseInt(attackJpegQuality.getText());
+        float q = qInt / 100.0f;
+        applyAttack(WatermarkAttacks.jpegCompress(getCurrentRgbImage(), q), "JPEG Compress (q=" + qInt + ")");
     }
 
     public void attackPng() {
@@ -831,6 +844,322 @@ public class MainWindowController implements Initializable {
 
     public void attackCrop() {
         applyAttack(WatermarkAttacks.crop(getCurrentRgbImage(), 0.10), "Crop 10%");
+    }
+
+    // ===== Automated Report Export =====
+
+    public void runExport() {
+        if (watermarkImage == null) {
+            Dialogs.alert(AlertType.WARNING, "Load a watermark image first.").showAndWait();
+            return;
+        }
+
+        String method = exportMethod.getValue();
+        String attack = exportAttack.getValue();
+
+        // Build a param string for window titles so you know what settings were used.
+        String params = buildParamString(method, attack);
+
+        // --- 1) Original image ---
+        BufferedImage originalRgb = process.originalImage;
+        Dialogs.showImageInWindow(originalRgb, "1) Original Image | " + params);
+
+        // --- 2) Original watermark ---
+        Dialogs.showImageInWindow(watermarkImage, "2) Original Watermark | " + params);
+
+        // --- Fresh pipeline: load original, convert to YCbCr, embed ---
+        ProcessImage tempProcess = new ProcessImage(originalRgb);
+        tempProcess.convertToYCbCr();
+        Matrix yChannel = tempProcess.getWorkingYCbCr().getY();
+
+        // Embed watermark with current UI settings.
+        embedForExport(method, yChannel);
+
+        // --- 3) Watermarked image (convert back to RGB) ---
+        tempProcess.convertToRGB();
+        BufferedImage watermarked = tempProcess.getImageFromRGB();
+        Dialogs.showImageInWindow(watermarked, "3) Watermarked Image [" + method + "] | " + params);
+
+        // --- 4) Extract watermark from watermarked image ---
+        // Re-convert to YCbCr to extract.
+        ProcessImage extractProcess = new ProcessImage(watermarked);
+        extractProcess.convertToYCbCr();
+        Matrix yExtract = extractProcess.getWorkingYCbCr().getY();
+        BufferedImage extracted = extractForExport(method, yExtract);
+        Dialogs.showImageInWindow(extracted, "4) Extracted Watermark [" + method + "] | " + params);
+
+        if ("None".equals(attack)) return;
+
+        // --- 5) Attacked image ---
+        BufferedImage attacked = applyAttackForExport(attack, watermarked);
+        Dialogs.showImageInWindow(attacked, "5) Attacked Image [" + attack + "] | " + params);
+
+        // --- 6) Extract watermark from attacked image ---
+        ProcessImage attackedProcess = new ProcessImage(attacked);
+        attackedProcess.convertToYCbCr();
+        Matrix yAttacked = attackedProcess.getWorkingYCbCr().getY();
+        BufferedImage extractedAfterAttack = extractForExport(method, yAttacked);
+        Dialogs.showImageInWindow(extractedAfterAttack, "6) Extracted After Attack [" + method + " + " + attack + "] | " + params);
+    }
+
+    private String buildParamString(String method, String attack) {
+        StringBuilder sb = new StringBuilder();
+        switch (method) {
+            case "LSB" -> sb.append("ch=").append(wmLsbChannel.getValue())
+                    .append(" h=").append(wmLsbBitPlane.getValue())
+                    .append(" key=").append(wmLsbKey.getText())
+                    .append(" str=").append(wmLsbStrength.getValue());
+            case "DCT" -> sb.append("block=").append(wmDctBlock.getValue())
+                    .append(" c1=(").append(wmDctU1.getValue()).append(",").append(wmDctV1.getValue()).append(")")
+                    .append(" c2=(").append(wmDctU2.getValue()).append(",").append(wmDctV2.getValue()).append(")")
+                    .append(" h=").append(wmDctDepth.getText());
+            case "Spread Spectrum" -> sb.append("alpha=").append(wmSsAlpha.getText())
+                    .append(" key=").append(wmSsKey.getText());
+            case "Patchwork" -> sb.append("delta=").append(wmPwDelta.getText())
+                    .append(" key=").append(wmPwKey.getText());
+        }
+        sb.append(" multi=").append(wmMultiInsert.isSelected());
+        if (!"None".equals(attack)) {
+            sb.append(" | attack=").append(attack);
+            if ("JPEG Compress".equals(attack)) sb.append(" q=").append(attackJpegQuality.getText());
+        }
+        return sb.toString();
+    }
+
+    private void embedForExport(String method, Matrix yChannel) {
+        boolean multi = wmMultiInsert.isSelected();
+        switch (method) {
+            case "LSB" -> {
+                String ch = wmLsbChannel.getValue();
+                int h = wmLsbBitPlane.getValue();
+                int key = Integer.parseInt(wmLsbKey.getText());
+                int strength = wmLsbStrength.getValue();
+                LsbWatermark.embed(yChannel, watermarkImage, h, key, strength, multi);
+            }
+            case "DCT" -> {
+                int block = wmDctBlock.getValue();
+                int u1 = wmDctU1.getValue(), v1 = wmDctV1.getValue();
+                int u2 = wmDctU2.getValue(), v2 = wmDctV2.getValue();
+                double depth = Double.parseDouble(wmDctDepth.getText());
+                DctWatermark.embed(yChannel, watermarkImage, block, u1, v1, u2, v2, depth, multi);
+            }
+            case "Spread Spectrum" -> {
+                double alpha = Double.parseDouble(wmSsAlpha.getText());
+                int key = Integer.parseInt(wmSsKey.getText());
+                SpreadSpectrumWatermark.embed(yChannel, watermarkImage, alpha, key, multi);
+            }
+            case "Patchwork" -> {
+                double delta = Double.parseDouble(wmPwDelta.getText());
+                int key = Integer.parseInt(wmPwKey.getText());
+                PatchworkWatermark.embed(yChannel, watermarkImage, delta, key, multi);
+            }
+        }
+    }
+
+    private BufferedImage extractForExport(String method, Matrix yChannel) {
+        boolean multi = wmMultiInsert.isSelected();
+        int wmW = watermarkImage.getWidth(), wmH = watermarkImage.getHeight();
+        return switch (method) {
+            case "LSB" -> {
+                int h = wmLsbBitPlane.getValue();
+                int key = Integer.parseInt(wmLsbKey.getText());
+                yield LsbWatermark.extract(yChannel, wmW, wmH, h, key, multi);
+            }
+            case "DCT" -> {
+                int block = wmDctBlock.getValue();
+                int u1 = wmDctU1.getValue(), v1 = wmDctV1.getValue();
+                int u2 = wmDctU2.getValue(), v2 = wmDctV2.getValue();
+                int[] maxWm = DctWatermark.maxWatermarkSize(yChannel.getRowDimension(), yChannel.getColumnDimension(), block);
+                int w = Math.min(wmW, maxWm[0]), ht = Math.min(wmH, maxWm[1]);
+                yield DctWatermark.extract(yChannel, w, ht, block, u1, v1, u2, v2, multi);
+            }
+            case "Spread Spectrum" -> {
+                double alpha = Double.parseDouble(wmSsAlpha.getText());
+                int key = Integer.parseInt(wmSsKey.getText());
+                int[] maxWm = SpreadSpectrumWatermark.maxWatermarkSize(yChannel.getRowDimension(), yChannel.getColumnDimension());
+                int w = Math.min(wmW, maxWm[0]), ht = Math.min(wmH, maxWm[1]);
+                yield SpreadSpectrumWatermark.extract(yChannel, w, ht, alpha, key, multi);
+            }
+            case "Patchwork" -> {
+                double delta = Double.parseDouble(wmPwDelta.getText());
+                int key = Integer.parseInt(wmPwKey.getText());
+                int[] maxWm = PatchworkWatermark.maxWatermarkSize(yChannel.getRowDimension(), yChannel.getColumnDimension());
+                int w = Math.min(wmW, maxWm[0]), ht = Math.min(wmH, maxWm[1]);
+                yield PatchworkWatermark.extract(yChannel, w, ht, delta, key, multi);
+            }
+            default -> new BufferedImage(1, 1, BufferedImage.TYPE_BYTE_GRAY);
+        };
+    }
+
+    private BufferedImage applyAttackForExport(String attack, BufferedImage image) {
+        return switch (attack) {
+            case "JPEG Compress" -> {
+                int q = Integer.parseInt(attackJpegQuality.getText());
+                yield WatermarkAttacks.jpegCompress(image, q / 100.0f);
+            }
+            case "PNG Compress" -> WatermarkAttacks.pngCompress(image);
+            case "Rotate 45°" -> WatermarkAttacks.rotate(image, 45);
+            case "Rotate 90°" -> WatermarkAttacks.rotate(image, 90);
+            case "Resize 75%" -> WatermarkAttacks.resize(image, 0.75);
+            case "Resize 50%" -> WatermarkAttacks.resize(image, 0.50);
+            case "Mirror" -> WatermarkAttacks.mirror(image);
+            case "Crop 10%" -> WatermarkAttacks.crop(image, 0.10);
+            default -> image;
+        };
+    }
+
+    // ===== Export XLSX =====
+
+    // Shows a progress dialog and runs the given task on a background thread.
+    private void runExportWithProgress(javafx.concurrent.Task<String> task) {
+        // Build progress dialog
+        javafx.scene.control.Dialog<Void> dialog = new javafx.scene.control.Dialog<>();
+        dialog.setTitle("Exporting...");
+        dialog.setHeaderText(null);
+
+        javafx.scene.control.ProgressBar bar = new javafx.scene.control.ProgressBar();
+        bar.setPrefWidth(450);
+        bar.progressProperty().bind(task.progressProperty());
+
+        Label statusLabel = new Label("Starting export...");
+        statusLabel.textProperty().bind(task.messageProperty());
+
+        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(10, bar, statusLabel);
+        content.setPadding(new javafx.geometry.Insets(15));
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CANCEL);
+        dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.CANCEL)
+              .addEventFilter(javafx.event.ActionEvent.ACTION, e -> task.cancel());
+        Dialogs.styleDialog(dialog);
+
+        // Store result/error to show AFTER dialog closes
+        final String[] resultPath = { null };
+        final String[] errorMsg = { null };
+
+        task.setOnSucceeded(e -> {
+            resultPath[0] = task.getValue();
+            dialog.setResult(null);
+            dialog.close();
+        });
+        task.setOnFailed(e -> {
+            Throwable ex = task.getException();
+            ex.printStackTrace();
+            errorMsg[0] = ex.getMessage();
+            dialog.setResult(null);
+            dialog.close();
+        });
+        task.setOnCancelled(e -> {
+            dialog.setResult(null);
+            dialog.close();
+        });
+
+        new Thread(task, "export-thread").start();
+        dialog.showAndWait();
+
+        // Show result alert after the progress dialog has fully closed
+        if (resultPath[0] != null) {
+            Dialogs.alert(AlertType.INFORMATION, "Report saved to:\n" + resultPath[0]).showAndWait();
+        } else if (errorMsg[0] != null) {
+            Dialogs.alert(AlertType.ERROR, "Export failed: " + errorMsg[0]).showAndWait();
+        }
+    }
+
+    // Export ALL predefined scenarios (4 methods x 3 configs x 13 attacks)
+    public void exportAllXlsx() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Save Full Report (all scenarios)");
+        fc.setInitialFileName("watermark-report-all.xlsx");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Excel Files", "*.xlsx"));
+        File file = fc.showSaveDialog(btnUndoChanges.getScene().getWindow());
+        if (file == null) return;
+
+        javafx.concurrent.Task<String> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected String call() throws Exception {
+                BufferedImage original = javax.imageio.ImageIO.read(new File("Images/Lenna.png"));
+                BufferedImage wmLarge = javax.imageio.ImageIO.read(new File("Images/watermark.png"));
+                BufferedImage wmSmall = javax.imageio.ImageIO.read(new File("Images/watermark_64.png"));
+                return ExportPipeline.runAll(original, wmLarge, wmSmall, file,
+                    (current, total, msg) -> {
+                        updateProgress(current, total);
+                        updateMessage(current + "/" + total + "  " + msg);
+                    });
+            }
+        };
+        runExportWithProgress(task);
+    }
+
+    // Export CUSTOM: selected method + attack from UI combos, with current UI params
+    public void exportCustomXlsx() {
+        if (watermarkImage == null) {
+            Dialogs.alert(AlertType.WARNING, "Load a watermark image first.").showAndWait();
+            return;
+        }
+
+        String method = exportMethod.getValue();
+        String attack = exportAttack.getValue();
+        boolean multi = wmMultiInsert.isSelected();
+
+        ExportScenarios.WmParams params = switch (method) {
+            case "LSB" -> new ExportScenarios.WmParams(
+                    "Custom LSB", "LSB", wmLsbChannel.getValue(), wmLsbBitPlane.getValue(),
+                    Integer.parseInt(wmLsbKey.getText()), wmLsbStrength.getValue(),
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, multi);
+            case "DCT" -> new ExportScenarios.WmParams(
+                    "Custom DCT", "DCT", "Y", 0, 0, 0,
+                    wmDctBlock.getValue(), wmDctU1.getValue(), wmDctV1.getValue(),
+                    wmDctU2.getValue(), wmDctV2.getValue(),
+                    Double.parseDouble(wmDctDepth.getText()), 0, 0, 0, 0, multi);
+            case "Spread Spectrum" -> new ExportScenarios.WmParams(
+                    "Custom SS", "Spread Spectrum", "Y", 0, 0, 0,
+                    0, 0, 0, 0, 0, 0,
+                    Double.parseDouble(wmSsAlpha.getText()), Integer.parseInt(wmSsKey.getText()),
+                    0, 0, multi);
+            case "Patchwork" -> new ExportScenarios.WmParams(
+                    "Custom PW", "Patchwork", "Y", 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    Double.parseDouble(wmPwDelta.getText()), Integer.parseInt(wmPwKey.getText()), multi);
+            default -> throw new IllegalStateException("Unknown method: " + method);
+        };
+
+        // If "All Attacks" selected, use all; otherwise map UI attack name to pipeline name
+        String[] attacks;
+        if ("All Attacks".equals(attack)) {
+            attacks = ExportScenarios.ATTACKS;
+        } else {
+            String mapped = switch (attack) {
+                case "JPEG Compress" -> "JPEG " + attackJpegQuality.getText();
+                case "PNG Compress" -> "PNG";
+                case "Rotate 45\u00b0" -> "Rotate 45";
+                case "Rotate 90\u00b0" -> "Rotate 90";
+                default -> attack; // "None", "Resize 75%", "Resize 50%", "Mirror", "Crop 10%" are the same
+            };
+            attacks = new String[] { mapped };
+        }
+
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Save Custom Report");
+        fc.setInitialFileName("watermark-custom-" + method.toLowerCase().replace(" ", "-") + ".xlsx");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Excel Files", "*.xlsx"));
+        File file = fc.showSaveDialog(btnUndoChanges.getScene().getWindow());
+        if (file == null) return;
+
+        final ExportScenarios.WmParams finalParams = params;
+        final String[] finalAttacks = attacks;
+        final BufferedImage wmCopy = watermarkImage;
+        final BufferedImage origCopy = process.originalImage;
+
+        javafx.concurrent.Task<String> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected String call() throws Exception {
+                return ExportPipeline.runCustom(origCopy, wmCopy, finalParams, finalAttacks, file,
+                    (current, total, msg) -> {
+                        updateProgress(current, total);
+                        updateMessage(current + "/" + total + "  " + msg);
+                    });
+            }
+        };
+        runExportWithProgress(task);
     }
 
     // ===== Source Link Handlers =====
