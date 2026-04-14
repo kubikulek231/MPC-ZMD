@@ -1,24 +1,27 @@
 package watermark;
 
-import Jama.Matrix;
-import jpeg.Transform;
-import enums.TransformType;
-
 import java.awt.image.BufferedImage;
 
-// DCT-domain watermarking: embeds a binary watermark by comparing/swapping
-// two chosen frequency coefficients inside each DCT block.
-// Based on the assignment description: coefficients (u1,v1) and (u2,v2)
-// in mid-frequency range of each NxN block.
+import Jama.Matrix;
+import enums.TransformType;
+import jpeg.Transform;
+
+// DCT-domain watermarking -- hides a binary watermark by tweaking pairs of
+// frequency coefficients in each DCT block.
 public class DctWatermark {
 
-    // Embed watermark into a channel (Y recommended) using the DCT coefficient swap method.
-    // channel: Matrix(height, width) — modified in-place.
-    // watermark: B/W image to embed.
-    // blockSize: transform block size (e.g. 8).
-    // u1,v1,u2,v2: the two coefficient positions to compare/swap.
-    // h: robustness depth — enforces |coeff1 - coeff2| > h.
-    // multiInsert: tile watermark bits across all available blocks.
+    // Embeds the watermark into a single channel (usually Y) by swapping DCT coefficients.
+    // channel: Matrix(height, width) -- gets modified in-place.
+    // watermark: B/W image, each pixel is one bit (white=1, black=0).
+    // blockSize: size of DCT blocks (e.g. 8). One block = one watermark bit.
+    // u1,v1,u2,v2: which two DCT coefficients to use.
+    //   - Should be somewhere in the mid-frequencies (e.g. (3,4) and (4,3) for 8x8).
+    //   - Too close to (0,0) -> visible artifacts. Too close to (N-1,N-1) -> fragile.
+    // h: robustness depth -- after swapping we also push the coeffs apart
+    //    so |c1 - c2| >= h. Bigger h = harder to destroy but also more visible.
+    //    h = 0 means just swap, no extra gap.
+    // multiInsert: repeats the watermark across all blocks (tiling). During extraction
+    //   each bit gets majority-voted from all its copies, which helps robustness.
     public static void embed(Matrix channel, BufferedImage watermark, int blockSize,
                              int u1, int v1, int u2, int v2, double h, boolean multiInsert) {
         int rows = channel.getRowDimension();
@@ -59,7 +62,9 @@ public class DctWatermark {
                 int startRow = br * blockSize;
                 int startCol = bc * blockSize;
 
-                // Forward DCT: T * block * T^T
+                // Forward 2D DCT on the block:
+                //   G(i,j) = (1/4)*Ci*Cj * SUM B(x,y)*cos(...)*cos(...)
+                // In matrix form: G = T * B * T^T
                 Matrix block = channel.getMatrix(startRow, startRow + blockSize - 1,
                         startCol, startCol + blockSize - 1);
                 Matrix dctBlock = T.times(block).times(Tt);
@@ -69,8 +74,9 @@ public class DctWatermark {
 
                 int bit = wmBits[bitIdx];
 
-                // Bit == 0 → c1 > c2 must hold.
-                // Bit == 1 → c1 <= c2 must hold.
+                // bit 0 -> c1 should be bigger than c2
+                // bit 1 -> c1 should be smaller or equal to c2
+                // If it already matches we don't touch anything, otherwise swap.
                 if (bit == 0) {
                     if (c1 <= c2) {
                         // Swap coefficients.
@@ -79,7 +85,8 @@ public class DctWatermark {
                         c1 = dctBlock.get(u1, v1);
                         c2 = dctBlock.get(u2, v2);
                     }
-                    // Enforce robustness: |c1 - c2| > h.
+                    // Push them apart by h so the gap doesn't accidentally flip
+                    // from small changes like JPEG recompression or noise.
                     if (h > 0 && Math.abs(c1 - c2) <= h) {
                         dctBlock.set(u1, v1, c1 + h / 2.0);
                         dctBlock.set(u2, v2, c2 - h / 2.0);
@@ -91,13 +98,16 @@ public class DctWatermark {
                         c1 = dctBlock.get(u1, v1);
                         c2 = dctBlock.get(u2, v2);
                     }
+                    // Same thing but other direction.
                     if (h > 0 && Math.abs(c1 - c2) <= h) {
                         dctBlock.set(u1, v1, c1 - h / 2.0);
                         dctBlock.set(u2, v2, c2 + h / 2.0);
                     }
                 }
 
-                // Inverse DCT: T^T * dctBlock * T
+                // Inverse 2D DCT to get back pixel values:
+                //   B(x,y) = (1/4) * SUM Ci*Cj*G(i,j)*cos(...)*cos(...)
+                // In matrix form: B = T^T * G * T
                 Matrix modified = Tt.times(dctBlock).times(T);
                 channel.setMatrix(startRow, startRow + blockSize - 1,
                         startCol, startCol + blockSize - 1, modified);
@@ -109,8 +119,10 @@ public class DctWatermark {
         }
     }
 
-    // Extract watermark from a watermarked channel.
-    // Returns a B/W BufferedImage of the given watermark dimensions.
+    // Extracts the watermark back -- blind, doesn't need the original image.
+    // Just checks each block: c1 > c2 -> bit 0, otherwise bit 1.
+    // With multiInsert, same bit appears in many blocks so we majority-vote them.
+    // Returns a B/W image of the given dimensions.
     public static BufferedImage extract(Matrix channel, int wmWidth, int wmHeight, int blockSize,
                                         int u1, int v1, int u2, int v2, boolean multiInsert) {
         int rows = channel.getRowDimension();

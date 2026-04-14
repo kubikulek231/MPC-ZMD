@@ -1,26 +1,25 @@
 package watermark;
 
-import Jama.Matrix;
-
 import java.awt.image.BufferedImage;
 import java.util.Random;
 
-// LSB watermarking in spatial domain on a single YCbCr channel (Y, Cb, or Cr).
-// Watermark is a black-and-white image that gets binarized and permuted with a key.
+import Jama.Matrix;
+
+// LSB watermarking -- works in the spatial domain on a single YCbCr channel.
+// The watermark is a B/W image, gets binarized and then scrambled with a key.
 public class LsbWatermark {
 
-    // Embed a binary watermark into a chosen YCbCr channel at bit plane h.
-    // channel: the Matrix(height, width) to embed into (modified in-place).
-    // watermark: B/W image to embed.
-    // h: bit plane depth (0 = LSB, 7 = MSB). Assignment uses 1-based naming where h=1 is the LSB.
-    // key: permutation seed for scrambling watermark bits.
-    // strength: robustness parameter, 0 means no extra enforcement.
-    // multiInsert: if true, tile the watermark across the entire channel.
+    // Embed a binary watermark into a channel at bit plane h.
+    // channel: Matrix(height, width), modified in-place.
+    // h: which bit plane (0 = LSB, 7 = MSB). The assignment uses 1-based naming where h=1 is LSB.
+    // key: seed for scrambling the watermark bits before embedding.
+    // strength: if > 0, nudges pixel values to make the embedded bit harder to destroy.
+    // multiInsert: tiles the watermark across the whole channel for redundancy.
     public static void embed(Matrix channel, BufferedImage watermark, int h, int key, int strength, boolean multiInsert) {
         int chHeight = channel.getRowDimension();
         int chWidth = channel.getColumnDimension();
 
-        // Binarize watermark: pixel > 128 → 1, else 0.
+        // Binarize watermark: pixel > 128 -> 1, else 0.
         int wmW = watermark.getWidth();
         int wmH = watermark.getHeight();
         int[] wmBits = new int[wmW * wmH];
@@ -31,11 +30,11 @@ public class LsbWatermark {
             }
         }
 
-        // Permute watermark bits using key.
+        // Permute watermark bits with the key so they're not stored in order.
         int[] permuted = permute(wmBits, key);
 
         int totalPixels = chHeight * chWidth;
-        // Build the full embedding sequence, tiling if multiInsert is on.
+        // Build embedding sequence -- tile if multiInsert is on.
         int[] embedBits;
         if (multiInsert && permuted.length < totalPixels) {
             embedBits = new int[totalPixels];
@@ -62,7 +61,7 @@ public class LsbWatermark {
             // Place the watermark bit into the target bit plane.
             pixel = pixel | (embedBits[i] << h);
 
-            // Apply strength: if strength > 0, nudge pixel value to make the bit more robust.
+            // Apply strength: bump the pixel value a bit to make the embedded bit stick better.
             if (strength > 0) {
                 int half = strength / 2;
                 if (embedBits[i] == 1) {
@@ -76,11 +75,9 @@ public class LsbWatermark {
         }
     }
 
-    // Extract the watermark from a watermarked channel.
-    // wmWidth, wmHeight: dimensions of the original watermark image.
-    // h: same bit plane used during embedding.
-    // key: same permutation seed used during embedding.
-    // multiInsert: whether multi-insert was used; if true, extract from full channel and majority-vote.
+    // Read the watermark back from a channel.
+    // Uses the same h, key and multiInsert as during embedding.
+    // With multiInsert we majority-vote all copies of each bit.
     public static BufferedImage extract(Matrix channel, int wmWidth, int wmHeight, int h, int key, boolean multiInsert) {
         int chHeight = channel.getRowDimension();
         int chWidth = channel.getColumnDimension();
@@ -89,7 +86,7 @@ public class LsbWatermark {
 
         int[] rawBits;
         if (multiInsert && wmSize < totalPixels) {
-            // Majority voting: collect all copies and vote per watermark position.
+            // Majority voting: grab all copies and pick the most common value per bit position.
             int[] sum = new int[wmSize];
             int[] cnt = new int[wmSize];
             for (int i = 0; i < totalPixels; i++) {
@@ -115,10 +112,10 @@ public class LsbWatermark {
             }
         }
 
-        // Inverse-permute the extracted bits.
+        // Un-scramble the extracted bits.
         int[] recovered = inversePermute(rawBits, key);
 
-        // Build image from binary bits.
+        // Turn binary bits back into an image.
         BufferedImage result = new BufferedImage(wmWidth, wmHeight, BufferedImage.TYPE_BYTE_GRAY);
         for (int y = 0; y < wmHeight; y++) {
             for (int x = 0; x < wmWidth; x++) {

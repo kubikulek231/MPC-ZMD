@@ -3,7 +3,7 @@ package imageProcessing;
 import Jama.Matrix;
 
 /**
- * Třída, která bude obsahovat všechnu práci s obrázkem.
+ * Color space conversion (legacy version kept for the tests).
  */
 public class ColorTransform {
 

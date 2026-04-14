@@ -1,6 +1,5 @@
 package graphics;
 
-import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
@@ -29,9 +28,9 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import javafx.scene.text.Text;
 import javafx.util.Pair;
 import watermark.DctWatermark;
 import watermark.LsbWatermark;
@@ -106,6 +105,7 @@ public class MainWindowController implements Initializable {
 
     @FXML CheckBox shadesOfGrey;
     @FXML CheckBox showSteps;
+    @FXML CheckBox guidedMode;
 
     @FXML Spinner<Integer> transformBlock;
     @FXML ComboBox<TransformType> transformType;
@@ -157,6 +157,12 @@ public class MainWindowController implements Initializable {
             });
         }
 
+        updateWorkflowControls();
+        updateWatermarkControls();
+    }
+
+    // Called when the guided-mode checkbox is toggled.
+    public void onGuidedModeToggle() {
         updateWorkflowControls();
         updateWatermarkControls();
     }
@@ -299,7 +305,7 @@ public class MainWindowController implements Initializable {
 
     /** Convert the modified YCbCr channels back to RGB. */
     public void convertToRGB() {
-        if (!ycbcrActive || sampled || transformed || quantized) return;
+        if (isGuided() && (!ycbcrActive || sampled || transformed || quantized)) return;
         ycbcrActive = false;
         sampled = false;
         transformed = false;
@@ -315,7 +321,7 @@ public class MainWindowController implements Initializable {
 
     /** Apply chroma subsampling to the modified Cb and Cr channels. */
     public void sample() {
-        if (!ycbcrActive || sampled || transformed || quantized) return;
+        if (isGuided() && (!ycbcrActive || sampled || transformed || quantized)) return;
         SamplingType type = sampling.getSelectionModel().getSelectedItem();
         process.applySampling(type);
         sampled = true;
@@ -329,7 +335,7 @@ public class MainWindowController implements Initializable {
 
     /** Inverse chroma subsampling (bilinear interpolation). */
     public void inverseSample() {
-        if (!ycbcrActive || !sampled || transformed || quantized) return;
+        if (isGuided() && (!ycbcrActive || !sampled || transformed || quantized)) return;
         process.applyInverseSampling(sampling.getSelectionModel().getSelectedItem());
         sampled = false;
         updateWorkflowControls();
@@ -337,7 +343,7 @@ public class MainWindowController implements Initializable {
 
     /** Apply the selected block transform (DCT / WHT) to the YCbCr channels. */
     public void transform() {
-        if (!ycbcrActive || transformed || quantized) return;
+        if (isGuided() && (!ycbcrActive || transformed || quantized)) return;
         process.applyTransform(transformType.getValue(), transformBlock.getValue());
         transformed = true;
         updateWorkflowControls();
@@ -345,7 +351,7 @@ public class MainWindowController implements Initializable {
 
     /** Inverse block transform on the YCbCr channels. */
     public void inverseTransform() {
-        if (!ycbcrActive || !transformed || quantized) return;
+        if (isGuided() && (!ycbcrActive || !transformed || quantized)) return;
         process.applyInverseTransform(transformType.getValue(), transformBlock.getValue());
         transformed = false;
         updateWorkflowControls();
@@ -359,7 +365,7 @@ public class MainWindowController implements Initializable {
 
     /** Quantize the transform coefficients using the selected quality setting. */
     public void quantize() {
-        if (!ycbcrActive || !transformed || quantized) return;
+        if (isGuided() && (!ycbcrActive || !transformed || quantized)) return;
         process.applyQuantization((int) quantizeQuality.getValue(), transformBlock.getValue());
         quantized = true;
         updateWorkflowControls();
@@ -367,7 +373,7 @@ public class MainWindowController implements Initializable {
 
     /** Dequantize the transform coefficients. */
     public void inverseQuantize() {
-        if (!ycbcrActive || !quantized) return;
+        if (isGuided() && (!ycbcrActive || !quantized)) return;
         process.applyInverseQuantization((int) quantizeQuality.getValue(), transformBlock.getValue());
         quantized = false;
         updateWorkflowControls();
@@ -409,7 +415,33 @@ public class MainWindowController implements Initializable {
         updateWatermarkControls();
     }
 
+    private boolean isGuided() {
+        return guidedMode == null || guidedMode.isSelected();
+    }
+
     private void updateWorkflowControls() {
+        if (!isGuided()) {
+            // unguided -- everything is clickable
+            buttonToYCbCr.setDisable(false);
+            buttonSample.setDisable(false);
+            buttonTransform.setDisable(false);
+            buttonQuantize.setDisable(false);
+            sampling.setDisable(false);
+            transformType.setDisable(false);
+            transformBlock.setDisable(false);
+            quantizeQuality.setDisable(false);
+            quantizeQualityField.setDisable(false);
+            buttonInverseQuantize.setDisable(false);
+            buttonInverseTransform.setDisable(false);
+            buttonInverseSample.setDisable(false);
+            buttonInverseToRGB.setDisable(false);
+            buttonCountPSNR.setDisable(false);
+            if (workflowStatus != null) {
+                workflowStatus.setText("Guided mode OFF -- all buttons are unlocked. Click in any order.");
+            }
+            return;
+        }
+
         buttonToYCbCr.setDisable(ycbcrActive);
 
         buttonSample.setDisable(!ycbcrActive || sampled || transformed || quantized);
@@ -454,6 +486,29 @@ public class MainWindowController implements Initializable {
 
     private void updateWatermarkControls() {
         boolean wmLoaded = watermarkImage != null;
+
+        if (!isGuided()) {
+            // unguided -- everything unlocked (except show buttons that need data)
+            btnShowWatermark.setDisable(!wmLoaded);
+            btnShowExtracted.setDisable(extractedWatermark == null);
+            btnLsbEmbed.setDisable(!wmLoaded);
+            btnLsbExtract.setDisable(!wmLoaded);
+            btnDctEmbed.setDisable(!wmLoaded);
+            btnDctExtract.setDisable(!wmLoaded);
+            btnAttackJpeg.setDisable(false);
+            btnAttackPng.setDisable(false);
+            btnAttackRotate45.setDisable(false);
+            btnAttackRotate90.setDisable(false);
+            btnAttackResize75.setDisable(false);
+            btnAttackResize50.setDisable(false);
+            btnAttackMirror.setDisable(false);
+            btnAttackCrop.setDisable(false);
+            if (wmWorkflowStatus != null) {
+                wmWorkflowStatus.setText("Guided mode OFF -- all watermark buttons unlocked.");
+            }
+            return;
+        }
+
         boolean canEmbed = wmLoaded && ycbcrActive && !sampled && !transformed && !quantized;
         boolean canExtract = wmLoaded && ycbcrActive && !sampled && !transformed && !quantized;
         boolean wmEmbedded = lsbEmbedded || dctEmbedded;

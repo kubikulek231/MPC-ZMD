@@ -1,6 +1,9 @@
 package graphics;
 
 import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -16,6 +19,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -56,7 +60,14 @@ public class Dialogs {
 
         BorderPane root = new BorderPane();
 
+        Button copyBtn = createCopyButton(bufferedImage);
+        HBox toolbar = new HBox(copyBtn);
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        toolbar.getStyleClass().add("copy-toolbar");
+        root.setTop(toolbar);
+
         Scene scene = new Scene(root);
+        scene.getStylesheets().add(Dialogs.class.getResource("main-window.css").toExternalForm());
         StackPane stackPane = setImageStackPane(bufferedImage, title, scene, true, bufferedImage.getWidth(), bufferedImage.getHeight());
         ImageView imageView = (ImageView) stackPane.getChildren().get(0);
         root.setCenter(stackPane);
@@ -88,8 +99,36 @@ public class Dialogs {
         root.setCenter(hBox);
 
         Scene scene = new Scene(root);
+        scene.getStylesheets().add(Dialogs.class.getResource("main-window.css").toExternalForm());
         stage.setScene(scene);
         stage.setUserData(keepOpen);
+
+        // Copy button that snapshots whatever is currently shown.
+        Button copyBtn = createCopyButton(null);
+        copyBtn.setOnAction(e -> {
+            // render all images side-by-side into one BufferedImage
+            int totalW = 0, maxH = 0;
+            for (Pair<BufferedImage, String> img : images) {
+                totalW += img.getKey().getWidth();
+                maxH = Math.max(maxH, img.getKey().getHeight());
+            }
+            BufferedImage combined = new BufferedImage(totalW, maxH, BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D g = combined.createGraphics();
+            g.setColor(java.awt.Color.WHITE);
+            g.fillRect(0, 0, totalW, maxH);
+            int xOff = 0;
+            for (Pair<BufferedImage, String> img : images) {
+                g.drawImage(img.getKey(), xOff, 0, null);
+                xOff += img.getKey().getWidth();
+            }
+            g.dispose();
+            copyImageToClipboard(combined);
+            copyBtn.setText("Copied!");
+        });
+        HBox toolbar = new HBox(copyBtn);
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        toolbar.getStyleClass().add("copy-toolbar");
+        root.setTop(toolbar);
 
         stage.setOnCloseRequest((e) -> openStages.remove(stage));
         openStages.add(stage);
@@ -265,5 +304,39 @@ public class Dialogs {
 
         scene.widthProperty().addListener(sizeListener);
         scene.heightProperty().addListener(sizeListener);
+    }
+
+    // copy a BufferedImage to the system clipboard so it can be pasted into Excel etc.
+    private static void copyImageToClipboard(BufferedImage image) {
+        Transferable transferable = new Transferable() {
+            @Override
+            public DataFlavor[] getTransferDataFlavors() {
+                return new DataFlavor[]{DataFlavor.imageFlavor};
+            }
+
+            @Override
+            public boolean isDataFlavorSupported(DataFlavor flavor) {
+                return DataFlavor.imageFlavor.equals(flavor);
+            }
+
+            @Override
+            public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
+                if (!isDataFlavorSupported(flavor)) throw new UnsupportedFlavorException(flavor);
+                return image;
+            }
+        };
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(transferable, null);
+    }
+
+    private static Button createCopyButton(BufferedImage image) {
+        Button btn = new Button("Copy");
+        btn.getStyleClass().add("top-action-button");
+        if (image != null) {
+            btn.setOnAction(e -> {
+                copyImageToClipboard(image);
+                btn.setText("Copied!");
+            });
+        }
+        return btn;
     }
 }

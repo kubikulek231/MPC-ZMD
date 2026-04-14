@@ -6,17 +6,18 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 
-// Implements all 6 attacks required by the assignment.
-// Each method takes a BufferedImage and returns a new attacked BufferedImage.
+// All 6 attacks from the assignment.
+// Each takes a BufferedImage, returns a new attacked one.
 public class WatermarkAttacks {
 
-    // JPEG compression attack — re-encode with given quality (0.0 - 1.0).
+    // JPEG compression attack -- re-encode with given quality (0.0 - 1.0).
     public static BufferedImage jpegCompress(BufferedImage image, float quality) {
         try {
             ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
@@ -38,7 +39,7 @@ public class WatermarkAttacks {
         }
     }
 
-    // PNG compression attack — lossless re-encode then read back.
+    // PNG compression attack -- lossless re-encode then read back.
     public static BufferedImage pngCompress(BufferedImage image) {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -105,7 +106,7 @@ public class WatermarkAttacks {
         return result;
     }
 
-    // Crop the image — remove a border of the given percentage from each edge.
+    // Crop -- chop off a border of the given percentage from each edge.
     public static BufferedImage crop(BufferedImage image, double cropPercent) {
         int w = image.getWidth();
         int h = image.getHeight();

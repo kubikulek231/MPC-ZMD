@@ -42,6 +42,22 @@ public class Transform {
         return result;
     }
 
+    /**
+     * Builds the DCT-II transform matrix. Each element is defined as:
+     *
+     *     C(i, j) = alpha(i) * cos( (2j + 1) * i * PI / (2N) )
+     *
+     * where N = blockSize and:
+     *     alpha(0)   = sqrt(1 / N)
+     *     alpha(i>0) = sqrt(2 / N)
+     *
+     * Example for N = 4 (rounded):
+     *
+     *     | 0.500   0.500   0.500   0.500 |
+     *     | 0.654   0.271  -0.271  -0.654 |
+     *     | 0.500  -0.500  -0.500   0.500 |
+     *     | 0.271  -0.654   0.654  -0.271 |
+     */
     private static Matrix createDctMatrix(int blockSize) {
         double[][] matrix = new double[blockSize][blockSize];
         double factor0 = Math.sqrt(1.0 / blockSize);
@@ -66,6 +82,24 @@ public class Transform {
         return hadamard.times(1.0 / Math.sqrt(blockSize));
     }
 
+    /**
+     * Recursively builds a Hadamard matrix using the Sylvester construction:
+     *
+     *     H(2N) = | H(N)   H(N) |
+     *             | H(N)  -H(N) |
+     *
+     * Example for size = 4 (built from H(2)):
+     *
+     *     H(1) = [1]
+     *
+     *     H(2) = | 1   1 |
+     *            | 1  -1 |
+     *
+     *     H(4) = | 1   1   1   1 |
+     *            | 1  -1   1  -1 |
+     *            | 1   1  -1  -1 |
+     *            | 1  -1  -1   1 |
+     */
     private static Matrix createHadamardMatrix(int size) {
         if (size == 1) {
             return new Matrix(new double[][]{{1.0}});

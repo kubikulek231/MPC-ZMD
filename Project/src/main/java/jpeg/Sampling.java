@@ -6,8 +6,7 @@ import enums.SamplingType;
 public class Sampling {
 
     /**
-     * Downsample the chroma matrix according to the given sampling type.
-     * Uses JAMA getMatrix / transpose — no external libraries.
+     * Downsample chroma according to the sampling type.
      */
     public static Matrix sampleDown(Matrix inputMatrix, SamplingType samplingType) {
         return switch (samplingType) {
@@ -22,8 +21,7 @@ public class Sampling {
     }
 
     /**
-     * Upsample the chroma matrix back to its pre-downsampling dimensions.
-     * Uses JAMA setMatrix / transpose — no external libraries.
+     * Upsample chroma back to its original dimensions.
      */
     public static Matrix sampleUp(Matrix inputMatrix, SamplingType samplingType) {
         return switch (samplingType) {
@@ -35,8 +33,7 @@ public class Sampling {
     }
 
     /**
-     * Keeps every even column (0, 2, 4, …), halving the column count.
-     * Uses JAMA {@code getMatrix(int[], int[])} to select columns by index array.
+     * Keeps every even column (0, 2, 4, ...), so we get half the columns.
      */
     private static Matrix downSample(Matrix mat) {
         int rows = mat.getRowDimension();
@@ -53,8 +50,7 @@ public class Sampling {
     }
 
     /**
-     * Duplicates each column (col 0 → cols 0 & 1, col 1 → cols 2 & 3, …), doubling the column count.
-     * Uses JAMA {@code setMatrix(i0, i1, j0, j1, X)} to write each column slice twice.
+     * Duplicates each column (col 0 -> cols 0 & 1, col 1 -> cols 2 & 3, ...), doubling the width.
      */
     private static Matrix upSample(Matrix mat) {
         int rows = mat.getRowDimension();

@@ -106,6 +106,7 @@
                               <HBox alignment="CENTER_LEFT" spacing="10.0">
                                  <children>
                                     <Label styleClass="card-title" text="Encode In YCbCr" />
+                                    <CheckBox fx:id="guidedMode" mnemonicParsing="false" onAction="#onGuidedModeToggle" selected="true" styleClass="soft-check" text="Guided mode" />
                                     <CheckBox fx:id="showSteps" mnemonicParsing="false" styleClass="soft-check" text="Show step previews" />
                                  </children>
                               </HBox>
@@ -259,7 +260,9 @@
                      <children>
                         <VBox spacing="10.0" styleClass="card">
                            <children>
-                              <Label styleClass="card-title" text="LSB Watermark (Spatial)" />
+                              <Label styleClass="card-title" text="LSB Watermark (Spatial)">
+                                 <tooltip><Tooltip wrapText="true" maxWidth="360" text="LSB = Least Significant Bit. Each pixel value (0-255) is stored as 8 bits. Bit 0 (LSB) carries the least visual weight -- flipping it changes the pixel by just 1, which is invisible. Higher bit planes (1, 2, ...) are more robust to attacks but increasingly visible. For a good balance use bit plane 0 or 1." /></tooltip>
+                              </Label>
                               <HBox alignment="CENTER_LEFT" spacing="8.0">
                                  <children>
                                     <Label text="Channel:" />
@@ -268,7 +271,7 @@
                                     </ComboBox>
                                     <Label text="Bit plane (h):" />
                                     <Spinner fx:id="wmLsbBitPlane" editable="true" prefWidth="70.0">
-                                       <tooltip><Tooltip text="Bit plane depth (0 = LSB, 7 = MSB). Lower = less visible, higher = more robust" /></tooltip>
+                                       <tooltip><Tooltip wrapText="true" maxWidth="340" text="Which bit of each pixel to replace with the watermark bit. 0 = LSB (least visible, least robust), 7 = MSB (very visible, very robust). Recommended: 0 for invisibility, 1 for a bit more robustness while still being hard to notice." /></tooltip>
                                     </Spinner>
                                  </children>
                               </HBox>
@@ -298,19 +301,21 @@
 
                         <VBox spacing="10.0" styleClass="card">
                            <children>
-                              <Label styleClass="card-title" text="DCT Watermark (Frequency)" />
+                              <Label styleClass="card-title" text="DCT Watermark (Frequency)">
+                                 <tooltip><Tooltip wrapText="true" maxWidth="400" text="Embeds one watermark bit per 8x8 DCT block (as in the JPEG standard) by comparing two chosen mid-frequency coefficients. Pick positions in the mid-frequency band of the 8x8 block -- not too close to (0,0) (visible artifacts) and not too close to (7,7) (fragile to compression). Recommended pairs for 8x8: (3,1)&amp;(4,1), (4,3)&amp;(5,2), (1,4)&amp;(3,3). These sit in the mid-frequencies where changes are hard to see but survive JPEG recompression." /></tooltip>
+                              </Label>
                               <HBox alignment="CENTER_LEFT" spacing="8.0">
                                  <children>
                                     <Label text="Block:" />
                                     <Spinner fx:id="wmDctBlock" prefWidth="70.0">
-                                       <tooltip><Tooltip text="DCT block size for frequency-domain embedding" /></tooltip>
+                                       <tooltip><Tooltip wrapText="true" maxWidth="300" text="DCT block size. Use 8 to match standard JPEG (as required by the assignment). Each 8x8 block carries one watermark bit." /></tooltip>
                                     </Spinner>
                                     <Label text="Coeff 1 (u1,v1):" />
                                     <Spinner fx:id="wmDctU1" editable="true" prefWidth="60.0">
-                                       <tooltip><Tooltip text="Row index of first DCT coefficient (0–63)" /></tooltip>
+                                       <tooltip><Tooltip wrapText="true" maxWidth="320" text="Row of the 1st DCT coefficient (0-7 for 8x8 blocks). Pick a mid-frequency position -- e.g. row 3 or 4. Avoid row 0 (DC, too visible) and row 7 (high freq, easily destroyed)." /></tooltip>
                                     </Spinner>
                                     <Spinner fx:id="wmDctV1" editable="true" prefWidth="60.0">
-                                       <tooltip><Tooltip text="Column index of first DCT coefficient (0–63)" /></tooltip>
+                                       <tooltip><Tooltip wrapText="true" maxWidth="320" text="Column of the 1st DCT coefficient (0-7 for 8x8 blocks). Same idea: stay in the middle range (1-5)." /></tooltip>
                                     </Spinner>
                                  </children>
                               </HBox>
@@ -318,10 +323,10 @@
                                  <children>
                                     <Label text="Coeff 2 (u2,v2):" />
                                     <Spinner fx:id="wmDctU2" editable="true" prefWidth="60.0">
-                                       <tooltip><Tooltip text="Row index of second DCT coefficient (0–63)" /></tooltip>
+                                       <tooltip><Tooltip wrapText="true" maxWidth="320" text="Row of the 2nd DCT coefficient. Should be a different mid-frequency position from (u1,v1). The watermark bit is encoded by which of the two coefficients is larger." /></tooltip>
                                     </Spinner>
                                     <Spinner fx:id="wmDctV2" editable="true" prefWidth="60.0">
-                                       <tooltip><Tooltip text="Column index of second DCT coefficient (0–63)" /></tooltip>
+                                       <tooltip><Tooltip wrapText="true" maxWidth="320" text="Column of the 2nd DCT coefficient. Together with (u2) this is the second position compared against (u1,v1) to encode each bit." /></tooltip>
                                     </Spinner>
                                     <Label text="Depth (h):" />
                                     <TextField fx:id="wmDctDepth" prefWidth="60.0" text="50">

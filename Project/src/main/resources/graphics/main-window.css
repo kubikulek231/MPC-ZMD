@@ -228,3 +228,8 @@
     -fx-background-color: #7a4747;
     -fx-border-color: #8f5858;
 }
+
+.copy-toolbar {
+    -fx-background-color: #2a3b4c;
+    -fx-padding: 6 10;
+}

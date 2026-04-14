@@ -34,7 +34,7 @@ public class ProcessImage {
         }
     }
 
-    // load a new image from disk and re-extract all channel matrices
+    // load a new image and re-extract channels
     public void loadImage(String path) {
         this.originalImage = Dialogs.loadImageFromPath(path);
         if (originalImage != null) {
@@ -44,7 +44,7 @@ public class ProcessImage {
         }
     }
 
-    // load an already-in-memory image (used after attacks)
+    // load an already-in-memory image (e.g. after attacks)
     public void loadImage(BufferedImage image) {
         this.originalImage = image;
         if (originalImage != null) {
@@ -68,35 +68,32 @@ public class ProcessImage {
         }
     }
 
-    // put all channels back to a black / zero state so the pipeline must be re-run from scratch
+    // zero everything out so the pipeline has to be re-run
     public void resetModified() {
         workingState.reset(imageWidth, imageHeight);
     }
 
-    // convert RGB -> YCbCr using SDTV (BT.601) coefficients
-    // we keep originalY/Cb/Cr as a snapshot so reset() can restore them later
-    // matrices use standard convention: Matrix(height, width) so cols = width = horizontal direction
-    // that way column-subsampling in Sampling correctly halves the horizontal (width) axis
+    // RGB -> YCbCr (BT.601)
+    // keeps a snapshot in originalState so reset() can restore later
+    // Matrix convention: Matrix(height, width), so column-subsampling = horizontal axis
     public void convertToYCbCr() {
         ImageColorSpaceConverter.convertRgbToYCbCr(originalState, workingState, imageWidth, imageHeight);
     }
 
-    // convert YCbCr back to RGB - inverse of the above
-    // shift Cb/Cr by -128 first because they were stored with +128 offset
-    // if Cb/Cr were downsampled, upsample into local temps - modifiedCb/Cr keep their downsampled size for display
+    // YCbCr -> RGB (inverse of above)
+    // Cb/Cr get upsampled if they were downsampled
     public void convertToRGB() {
         ImageColorSpaceConverter.convertYCbCrToRgb(workingState, imageWidth, imageHeight, lastSamplingType);
     }
 
-    // throw away some chroma data based on the selected sampling mode (4:4:4 / 4:2:2 / 4:2:0 / 4:1:1)
-    // Y is left alone - we only subsample Cb and Cr
+    // subsample chroma (4:4:4 / 4:2:2 / 4:2:0 / 4:1:1) -- Y stays untouched
     public void applySampling(SamplingType type) {
         lastSamplingType = type;
         workingState.getYCbCr().setCb(Sampling.sampleDown(workingState.getYCbCr().getCb(), type));
         workingState.getYCbCr().setCr(Sampling.sampleDown(workingState.getYCbCr().getCr(), type));
     }
 
-    // upsample Cb and Cr back to full size by duplicating columns/rows
+    // upsample Cb/Cr back to full size
     public void applyInverseSampling(SamplingType type) {
         workingState.getYCbCr().setCb(Sampling.sampleUp(workingState.getYCbCr().getCb(), type));
         workingState.getYCbCr().setCr(Sampling.sampleUp(workingState.getYCbCr().getCr(), type));
@@ -104,29 +101,29 @@ public class ProcessImage {
         lastSamplingType = SamplingType.S_4_4_4;
     }
 
-    // split each channel into NxN blocks and run DCT or WHT on each one
+    // run DCT or WHT on each NxN block of every channel
     public void applyTransform(TransformType type, int blockSize) {
         workingState.getYCbCr().setY(applyBlockTransform(workingState.getYCbCr().getY(), type, blockSize, false));
         workingState.getYCbCr().setCb(applyBlockTransform(workingState.getYCbCr().getCb(), type, blockSize, false));
         workingState.getYCbCr().setCr(applyBlockTransform(workingState.getYCbCr().getCr(), type, blockSize, false));
     }
 
-    // inverse transform - same block size as forward, same type
+    // inverse transform -- same block size and type as forward
     public void applyInverseTransform(TransformType type, int blockSize) {
         workingState.getYCbCr().setY(applyBlockTransform(workingState.getYCbCr().getY(), type, blockSize, true));
         workingState.getYCbCr().setCb(applyBlockTransform(workingState.getYCbCr().getCb(), type, blockSize, true));
         workingState.getYCbCr().setCr(applyBlockTransform(workingState.getYCbCr().getCr(), type, blockSize, true));
     }
 
-    // divide each transform coefficient by a step value from the quantization table
-    // higher quality = smaller steps = less data thrown away
+    // divide transform coefficients by quant table steps
+    // higher quality = smaller steps = less thrown away
     public void applyQuantization(int quality, int blockSize) {
         workingState.getYCbCr().setY(Quantization.quantize(workingState.getYCbCr().getY(), blockSize, quality, true));
         workingState.getYCbCr().setCb(Quantization.quantize(workingState.getYCbCr().getCb(), blockSize, quality, false));
         workingState.getYCbCr().setCr(Quantization.quantize(workingState.getYCbCr().getCr(), blockSize, quality, false));
     }
 
-    // multiply back by the same step values - we can't recover what was lost, but the scale is restored
+    // multiply back by quant steps -- can't recover the lost bits but restores the scale
     public void applyInverseQuantization(int quality, int blockSize) {
         workingState.getYCbCr().setY(Quantization.inverseQuantize(workingState.getYCbCr().getY(), blockSize, quality, true));
         workingState.getYCbCr().setCb(Quantization.inverseQuantize(workingState.getYCbCr().getCb(), blockSize, quality, false));
@@ -136,17 +133,15 @@ public class ProcessImage {
     // ===== Extended quality methods using the Quality class =====
 
     /**
-     * Computes MSE, MAE, SAE and PSNR for the requested channel.
+     * Compute MSE, MAE, SAE, PSNR for a channel.
      * Returns double[]{mse, mae, sae, psnr}.
-     * For RGB / YCbCr types the metric values are arithmetically averaged across the 3 channels.
-     * Throws IllegalStateException if the required channel data is not yet available
-     * (e.g.  Cb/Cr dimensions mismatch because subsampling was not reversed).
+     * For RGB/YCbCr types the values are averaged across 3 channels.
      */
     public double[] calculateMetrics(QualityType type) {
         return ImageMetricsCalculator.calculateMetrics(originalState, workingState, type);
     }
 
-    /** Computes SSIM and MSSIM for the requested YCbCr channel. Returns double[]{ssim, mssim}. */
+    /** SSIM and MSSIM for a YCbCr channel. Returns double[]{ssim, mssim}. */
     public double[] calculateSSIMMetrics(QualityType type) {
         return ImageMetricsCalculator.calculateSSIMMetrics(originalState, workingState, type);
     }
@@ -175,29 +170,29 @@ public class ProcessImage {
         return workingState.getYCbCr();
     }
 
-    // MSE = average squared difference per channel per pixel - lower means less distortion
+    // MSE = avg squared diff per channel per pixel -- lower = less distortion
     public double calculateMSE() {
         return ImageMetricsCalculator.calculateRgbMse(originalState, workingState, imageWidth, imageHeight);
     }
 
-    // PSNR in dB - log scale version of MSE, higher is better, infinity means no loss at all
+    // PSNR in dB -- log-scale MSE, higher is better, inf = no loss
     public double calculatePSNR() {
         return ImageMetricsCalculator.calculateRgbPsnr(originalState, workingState, imageWidth, imageHeight);
     }
 
-    // pack the three separate R/G/B arrays back into a single BufferedImage
+    // pack R/G/B arrays back into a BufferedImage
     public BufferedImage getImageFromRGB() {
         return ImagePreviewRenderer.renderRgbImage(workingState.getRgb(), imageWidth, imageHeight);
     }
 
     public enum ColorType { RED, GREEN, BLUE }
 
-    // render one R/G/B channel - either tinted in its own color or as greyscale depending on the checkbox
+    // show one R/G/B channel -- tinted or greyscale depending on checkbox
     public BufferedImage showOneColorImageFromRGB(int[][] color, ColorType type, boolean greyScale) {
         return ImagePreviewRenderer.renderRgbChannel(color, type, greyScale, imageWidth, imageHeight);
     }
 
-    // render a YCbCr channel matrix as greyscale - clamp values to 0-255 to avoid overflow
+    // render a YCbCr channel as greyscale -- clamp to 0-255
     // matrix is Matrix(height, width): rows=height, cols=width
     // matrix dimensions are used directly so it also works after downsampling
     public BufferedImage showOneColorImageFromYCbCr(Matrix color) {

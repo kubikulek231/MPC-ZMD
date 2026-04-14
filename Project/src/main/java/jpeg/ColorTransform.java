@@ -4,7 +4,7 @@ import Jama.Matrix;
 
 public class ColorTransform {
 
-    // RGB -> YCbCr using SDTV (BT.601 limited range) coefficients from the assignment
+    // RGB -> YCbCr using BT.601 (SDTV) limited range coefficients
     public static Matrix[] convertOriginalRGBtoYcBcR(int[][] red, int[][] green, int[][] blue) {
         int rows = red.length;
         int cols = red[0].length;
@@ -28,7 +28,7 @@ public class ColorTransform {
         return new Matrix[]{convertedY, convertedCb, convertedCr};
     }
 
-    // YCbCr -> RGB, returns Object[] so each element can be cast to int[][] by the test
+    // YCbCr -> RGB, returns Object[] so each element can be cast to int[][] in tests
     public static Object[] convertModifiedYcBcRtoRGB(Matrix Y, Matrix Cb, Matrix Cr) {
         int rows = Y.getRowDimension();
         int cols = Y.getColumnDimension();
