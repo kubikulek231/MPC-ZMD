@@ -34,6 +34,8 @@ import javafx.stage.WindowEvent;
 import javafx.util.Pair;
 import watermark.DctWatermark;
 import watermark.LsbWatermark;
+import watermark.PatchworkWatermark;
+import watermark.SpreadSpectrumWatermark;
 import watermark.WatermarkAttacks;
 
 public class MainWindowController implements Initializable {
@@ -50,6 +52,8 @@ public class MainWindowController implements Initializable {
     private BufferedImage extractedWatermark = null;
     private boolean lsbEmbedded = false;
     private boolean dctEmbedded = false;
+    private boolean ssEmbedded = false;
+    private boolean pwEmbedded = false;
 
     @FXML Button buttonInverseQuantize;
     @FXML Button buttonInverseToRGB;
@@ -83,6 +87,10 @@ public class MainWindowController implements Initializable {
     @FXML Spinner<Integer> wmDctU2;
     @FXML Spinner<Integer> wmDctV2;
     @FXML TextField wmDctDepth;
+    @FXML TextField wmSsAlpha;
+    @FXML TextField wmSsKey;
+    @FXML TextField wmPwDelta;
+    @FXML TextField wmPwKey;
     @FXML Slider attackJpegQuality;
     @FXML Text wmWorkflowStatus;
 
@@ -94,6 +102,10 @@ public class MainWindowController implements Initializable {
     @FXML Button btnLsbExtract;
     @FXML Button btnDctEmbed;
     @FXML Button btnDctExtract;
+    @FXML Button btnSsEmbed;
+    @FXML Button btnSsExtract;
+    @FXML Button btnPwEmbed;
+    @FXML Button btnPwExtract;
     @FXML Button btnAttackJpeg;
     @FXML Button btnAttackPng;
     @FXML Button btnAttackRotate45;
@@ -103,6 +115,7 @@ public class MainWindowController implements Initializable {
     @FXML Button btnAttackMirror;
     @FXML Button btnAttackCrop;
 
+    @FXML Button btnUndoChanges;
     @FXML CheckBox shadesOfGrey;
     @FXML CheckBox showSteps;
     @FXML CheckBox guidedMode;
@@ -411,8 +424,17 @@ public class MainWindowController implements Initializable {
         quantized = false;
         rgbReconstructed = false;
         clearPSNRFields();
+        updateUndoButton();
         updateWorkflowControls();
         updateWatermarkControls();
+    }
+
+    private void updateUndoButton() {
+        if (btnUndoChanges != null) {
+            boolean hasChanges = ycbcrActive || sampled || transformed || quantized
+                    || lsbEmbedded || dctEmbedded || ssEmbedded || pwEmbedded;
+            btnUndoChanges.setDisable(!hasChanges);
+        }
     }
 
     private boolean isGuided() {
@@ -420,6 +442,7 @@ public class MainWindowController implements Initializable {
     }
 
     private void updateWorkflowControls() {
+        updateUndoButton();
         if (!isGuided()) {
             // unguided -- everything is clickable
             buttonToYCbCr.setDisable(false);
@@ -485,6 +508,7 @@ public class MainWindowController implements Initializable {
     }
 
     private void updateWatermarkControls() {
+        updateUndoButton();
         boolean wmLoaded = watermarkImage != null;
 
         if (!isGuided()) {
@@ -495,6 +519,10 @@ public class MainWindowController implements Initializable {
             btnLsbExtract.setDisable(!wmLoaded);
             btnDctEmbed.setDisable(!wmLoaded);
             btnDctExtract.setDisable(!wmLoaded);
+            btnSsEmbed.setDisable(!wmLoaded);
+            btnSsExtract.setDisable(!wmLoaded);
+            btnPwEmbed.setDisable(!wmLoaded);
+            btnPwExtract.setDisable(!wmLoaded);
             btnAttackJpeg.setDisable(false);
             btnAttackPng.setDisable(false);
             btnAttackRotate45.setDisable(false);
@@ -511,7 +539,7 @@ public class MainWindowController implements Initializable {
 
         boolean canEmbed = wmLoaded && ycbcrActive && !sampled && !transformed && !quantized;
         boolean canExtract = wmLoaded && ycbcrActive && !sampled && !transformed && !quantized;
-        boolean wmEmbedded = lsbEmbedded || dctEmbedded;
+        boolean wmEmbedded = lsbEmbedded || dctEmbedded || ssEmbedded || pwEmbedded;
 
         btnShowWatermark.setDisable(!wmLoaded);
         btnShowExtracted.setDisable(extractedWatermark == null);
@@ -520,6 +548,10 @@ public class MainWindowController implements Initializable {
         btnLsbExtract.setDisable(!canExtract);
         btnDctEmbed.setDisable(!canEmbed);
         btnDctExtract.setDisable(!canExtract);
+        btnSsEmbed.setDisable(!canEmbed);
+        btnSsExtract.setDisable(!canExtract);
+        btnPwEmbed.setDisable(!canEmbed);
+        btnPwExtract.setDisable(!canExtract);
 
         boolean canAttack = wmEmbedded && !ycbcrActive;
         btnAttackJpeg.setDisable(!canAttack);
@@ -637,6 +669,60 @@ public class MainWindowController implements Initializable {
         Dialogs.showImageInWindow(extractedWatermark, "Extracted DCT Watermark");
     }
 
+    // ===== Spread Spectrum Handlers =====
+
+    public void ssEmbed() {
+        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
+        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        double alpha = Double.parseDouble(wmSsAlpha.getText());
+        int key = Integer.parseInt(wmSsKey.getText());
+        boolean multi = wmMultiInsert.isSelected();
+        Matrix yChannel = process.getWorkingYCbCr().getY();
+        SpreadSpectrumWatermark.embed(yChannel, watermarkImage, alpha, key, multi);
+        ssEmbedded = true;
+        updateWatermarkControls();
+        new Alert(AlertType.INFORMATION, "Spread Spectrum watermark embedded into Y channel (alpha=" + alpha + ").").showAndWait();
+    }
+
+    public void ssExtract() {
+        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load original watermark first (for dimensions).").showAndWait(); return; }
+        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        double alpha = Double.parseDouble(wmSsAlpha.getText());
+        int key = Integer.parseInt(wmSsKey.getText());
+        boolean multi = wmMultiInsert.isSelected();
+        Matrix yChannel = process.getWorkingYCbCr().getY();
+        extractedWatermark = SpreadSpectrumWatermark.extract(yChannel, watermarkImage.getWidth(), watermarkImage.getHeight(), alpha, key, multi);
+        updateWatermarkControls();
+        Dialogs.showImageInWindow(extractedWatermark, "Extracted Spread Spectrum Watermark");
+    }
+
+    // ===== Patchwork Handlers =====
+
+    public void pwEmbed() {
+        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load a watermark first.").showAndWait(); return; }
+        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        double delta = Double.parseDouble(wmPwDelta.getText());
+        int key = Integer.parseInt(wmPwKey.getText());
+        boolean multi = wmMultiInsert.isSelected();
+        Matrix yChannel = process.getWorkingYCbCr().getY();
+        PatchworkWatermark.embed(yChannel, watermarkImage, delta, key, multi);
+        pwEmbedded = true;
+        updateWatermarkControls();
+        new Alert(AlertType.INFORMATION, "Patchwork watermark embedded into Y channel (delta=" + delta + ").").showAndWait();
+    }
+
+    public void pwExtract() {
+        if (watermarkImage == null) { new Alert(AlertType.WARNING, "Load original watermark first (for dimensions).").showAndWait(); return; }
+        if (!ycbcrActive) { new Alert(AlertType.WARNING, "Convert to YCbCr first.").showAndWait(); return; }
+        double delta = Double.parseDouble(wmPwDelta.getText());
+        int key = Integer.parseInt(wmPwKey.getText());
+        boolean multi = wmMultiInsert.isSelected();
+        Matrix yChannel = process.getWorkingYCbCr().getY();
+        extractedWatermark = PatchworkWatermark.extract(yChannel, watermarkImage.getWidth(), watermarkImage.getHeight(), delta, key, multi);
+        updateWatermarkControls();
+        Dialogs.showImageInWindow(extractedWatermark, "Extracted Patchwork Watermark");
+    }
+
     // ===== Attack Handlers =====
     // Attacks operate on the current watermarked image (RGB reconstruction).
     // They replace the working RGB and show both attacked image and extraction attempt.
@@ -650,8 +736,9 @@ public class MainWindowController implements Initializable {
         process.loadImage(attacked);
         lsbEmbedded = false;
         dctEmbedded = false;
+        ssEmbedded = false;
+        pwEmbedded = false;
         resetWorkflow();
-        new Alert(AlertType.INFORMATION, name + " applied. The attacked image is now the working image.\nConvert to YCbCr to try extracting the watermark.").showAndWait();
     }
 
     public void attackJpeg() {
@@ -685,5 +772,17 @@ public class MainWindowController implements Initializable {
 
     public void attackCrop() {
         applyAttack(WatermarkAttacks.crop(getCurrentRgbImage(), 0.10), "Crop 10%");
+    }
+
+    // ===== Source Link Handlers =====
+
+    public void openSsSource() {
+        try { java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://ieeexplore.ieee.org/document/650120")); }
+        catch (Exception e) { e.printStackTrace(); }
+    }
+
+    public void openPwSource() {
+        try { java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://ieeexplore.ieee.org/document/5387338")); }
+        catch (Exception e) { e.printStackTrace(); }
     }
 }

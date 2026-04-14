@@ -10,6 +10,7 @@
 <?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Hyperlink?>
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.GridPane?>
@@ -35,8 +36,8 @@
                   <HBox alignment="CENTER_RIGHT" spacing="8.0">
                      <children>
                         <Button mnemonicParsing="false" onAction="#changeImage" styleClass="top-action-button" text="Open Image" />
-                        <Button mnemonicParsing="false" onAction="#useDefaultImage" styleClass="top-action-button" text="Default" />
-                        <Button mnemonicParsing="false" onAction="#reset" styleClass="top-action-button" text="Reset" />
+                        <Button mnemonicParsing="false" onAction="#useDefaultImage" styleClass="top-action-button" text="Load Default Image" />
+                        <Button fx:id="btnUndoChanges" mnemonicParsing="false" onAction="#reset" styleClass="top-action-button top-action-warning" text="Undo Changes" disable="true" />
                         <Button mnemonicParsing="false" onAction="#closeWindows" styleClass="top-action-button" text="Close Previews" />
                         <Button mnemonicParsing="false" onAction="#close" styleClass="top-action-button top-action-danger" text="Exit" />
                      </children>
@@ -348,9 +349,84 @@
                      </children>
                   </HBox>
 
+                  <HBox spacing="14.0">
+                     <children>
+                        <VBox spacing="10.0" styleClass="card">
+                           <children>
+                              <HBox alignment="CENTER_LEFT" spacing="6.0">
+                                 <children>
+                                    <Label styleClass="card-title" text="Spread Spectrum" />
+                                    <Hyperlink onAction="#openSsSource" text="Source" styleClass="card-source-link">
+                                       <tooltip><Tooltip text="Cox et al. - Secure Spread Spectrum Watermarking for Multimedia, IEEE 1997" /></tooltip>
+                                    </Hyperlink>
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Label text="Alpha:" />
+                                    <TextField fx:id="wmSsAlpha" prefWidth="60.0" text="15">
+                                       <tooltip><Tooltip wrapText="true" maxWidth="300" text="Embedding strength. Higher = more robust but more visible. Try 5-30." /></tooltip>
+                                    </TextField>
+                                    <Label text="Key:" />
+                                    <TextField fx:id="wmSsKey" prefWidth="80.0" text="42">
+                                       <tooltip><Tooltip text="Seed for the pseudo-random noise sequence." /></tooltip>
+                                    </TextField>
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Button fx:id="btnSsEmbed" mnemonicParsing="false" onAction="#ssEmbed" styleClass="primary-button" text="Embed SS" />
+                                    <Button fx:id="btnSsExtract" mnemonicParsing="false" onAction="#ssExtract" text="Extract SS" />
+                                 </children>
+                              </HBox>
+                           </children>
+                           <HBox.hgrow>
+                              <Priority fx:constant="ALWAYS" />
+                           </HBox.hgrow>
+                        </VBox>
+
+                        <VBox spacing="10.0" styleClass="card">
+                           <children>
+                              <HBox alignment="CENTER_LEFT" spacing="6.0">
+                                 <children>
+                                    <Label styleClass="card-title" text="Patchwork" />
+                                    <Hyperlink onAction="#openPwSource" text="Source" styleClass="card-source-link">
+                                       <tooltip><Tooltip text="Bender et al. - Techniques for Data Hiding, IBM Systems Journal 1996" /></tooltip>
+                                    </Hyperlink>
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Label text="Delta:" />
+                                    <TextField fx:id="wmPwDelta" prefWidth="60.0" text="10">
+                                       <tooltip><Tooltip wrapText="true" maxWidth="300" text="Brightness shift applied to each patch. Higher = more robust but more visible. Try 3-20." /></tooltip>
+                                    </TextField>
+                                    <Label text="Key:" />
+                                    <TextField fx:id="wmPwKey" prefWidth="80.0" text="42">
+                                       <tooltip><Tooltip text="Seed for picking the random pixel patches." /></tooltip>
+                                    </TextField>
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                 <children>
+                                    <Button fx:id="btnPwEmbed" mnemonicParsing="false" onAction="#pwEmbed" styleClass="primary-button" text="Embed PW" />
+                                    <Button fx:id="btnPwExtract" mnemonicParsing="false" onAction="#pwExtract" text="Extract PW" />
+                                 </children>
+                              </HBox>
+                           </children>
+                           <HBox.hgrow>
+                              <Priority fx:constant="ALWAYS" />
+                           </HBox.hgrow>
+                        </VBox>
+                     </children>
+                  </HBox>
+
                   <VBox spacing="10.0" styleClass="card">
                      <children>
-                        <Label styleClass="card-title" text="Attacks on Watermarked Image" />
+                        <Label styleClass="card-title" text="Attacks on Watermarked Image">
+                           <tooltip><Tooltip wrapText="true" maxWidth="400" text="Test watermark robustness by degrading the image. The attacked image replaces the working image so you can try extracting the watermark from it." /></tooltip>
+                        </Label>
+                        <Text styleClass="workflow-hint" wrappingWidth="650" text="Embed a watermark, convert back to RGB, then click an attack. The attacked image becomes the working image. It can be converted to YCbCr again and extracted to see if the watermark survived." />
                         <HBox alignment="CENTER_LEFT" spacing="8.0">
                            <children>
                               <Button fx:id="btnAttackJpeg" mnemonicParsing="false" onAction="#attackJpeg" text="JPEG Compress" />
@@ -363,8 +439,8 @@
                         </HBox>
                         <HBox alignment="CENTER_LEFT" spacing="8.0">
                            <children>
-                              <Button fx:id="btnAttackRotate45" mnemonicParsing="false" onAction="#attackRotate45" text="Rotate 45°" />
-                              <Button fx:id="btnAttackRotate90" mnemonicParsing="false" onAction="#attackRotate90" text="Rotate 90°" />
+                              <Button fx:id="btnAttackRotate45" mnemonicParsing="false" onAction="#attackRotate45" text="Rotate 45&#xB0;" />
+                              <Button fx:id="btnAttackRotate90" mnemonicParsing="false" onAction="#attackRotate90" text="Rotate 90&#xB0;" />
                               <Button fx:id="btnAttackResize75" mnemonicParsing="false" onAction="#attackResize75" text="Resize 75%" />
                               <Button fx:id="btnAttackResize50" mnemonicParsing="false" onAction="#attackResize50" text="Resize 50%" />
                            </children>

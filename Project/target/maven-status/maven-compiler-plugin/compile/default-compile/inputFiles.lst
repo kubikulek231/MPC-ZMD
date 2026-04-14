@@ -21,4 +21,6 @@ C:\Users\jakub.lepik\projects\MPC-ZMD\Project\src\main\java\jpeg\Transform.java
 C:\Users\jakub.lepik\projects\MPC-ZMD\Project\src\main\java\module-info.java
 C:\Users\jakub.lepik\projects\MPC-ZMD\Project\src\main\java\watermark\DctWatermark.java
 C:\Users\jakub.lepik\projects\MPC-ZMD\Project\src\main\java\watermark\LsbWatermark.java
+C:\Users\jakub.lepik\projects\MPC-ZMD\Project\src\main\java\watermark\PatchworkWatermark.java
+C:\Users\jakub.lepik\projects\MPC-ZMD\Project\src\main\java\watermark\SpreadSpectrumWatermark.java
 C:\Users\jakub.lepik\projects\MPC-ZMD\Project\src\main\java\watermark\WatermarkAttacks.java

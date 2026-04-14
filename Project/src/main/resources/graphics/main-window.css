@@ -53,6 +53,11 @@
     -fx-text-fill: #243242;
 }
 
+.card-source-link {
+    -fx-font-size: 11px;
+    -fx-padding: 2 0 0 0;
+}
+
 .status-text {
     -fx-fill: #475769;
     -fx-font-size: 12px;
@@ -217,6 +222,16 @@
 .top-action-button:hover {
     -fx-background-color: #3c5369;
     -fx-border-color: #4f6b85;
+}
+
+.top-action-warning {
+    -fx-background-color: #5c4a2e;
+    -fx-border-color: #6e5a3a;
+}
+
+.top-action-warning:hover {
+    -fx-background-color: #6e5736;
+    -fx-border-color: #836a44;
 }
 
 .top-action-danger {

@@ -1,0 +1,148 @@
+package watermark;
+
+import java.awt.image.BufferedImage;
+import java.util.Random;
+
+import Jama.Matrix;
+
+// Additive Spread Spectrum watermarking in the spatial domain.
+//
+// Based on: I.J. Cox, J. Kilian, F.T. Leighton, T. Shamoon,
+// "Secure Spread Spectrum Watermarking for Multimedia,"
+// IEEE Transactions on Image Processing, vol. 6, no. 12, pp. 1673-1687, Dec. 1997.
+// https://ieeexplore.ieee.org/document/650120
+//
+// How it works:
+//   1. Binarize the watermark into bits (white=1, black=0).
+//   2. For each watermark bit, generate a pseudo-random noise chip sequence
+//      from the key. The chip length = number of pixels per watermark bit.
+//   3. Embedding: for bit=1, add +alpha * noise[i] to each pixel in the chip.
+//                 for bit=0, add -alpha * noise[i].
+//      'alpha' controls the trade-off between invisibility and robustness.
+//   4. Extraction: correlate the (possibly attacked) channel with the same noise.
+//      If correlation > 0 -> bit=1, else bit=0.
+//      With multiInsert, same bit is embedded multiple times and majority-voted.
+//
+// This is a spread-spectrum technique because each single bit is "spread" across
+// many pixels using a wide-band pseudo-random sequence, making it robust against
+// localized attacks (crop, noise) but sensitive to geometric attacks (rotation, resize).
+public class SpreadSpectrumWatermark {
+
+    // Embed watermark into a channel (Y recommended).
+    // alpha: embedding strength -- higher = more robust but more visible. Try 5-30.
+    // key: seed for the pseudo-random chip sequence.
+    public static void embed(Matrix channel, BufferedImage watermark, double alpha, int key, boolean multiInsert) {
+        int rows = channel.getRowDimension();
+        int cols = channel.getColumnDimension();
+        int totalPixels = rows * cols;
+
+        int[] wmBits = binarize(watermark);
+        int wmSize = wmBits.length;
+
+        // How many pixels per watermark bit (chip length).
+        int chipsPerBit = totalPixels / wmSize;
+        if (chipsPerBit < 1) chipsPerBit = 1;
+
+        Random rng = new Random(key);
+
+        // Generate a random permutation of pixel indices so bits are spread across the image.
+        int[] pixelOrder = new int[totalPixels];
+        for (int i = 0; i < totalPixels; i++) pixelOrder[i] = i;
+        for (int i = totalPixels - 1; i > 0; i--) {
+            int j = rng.nextInt(i + 1);
+            int tmp = pixelOrder[i]; pixelOrder[i] = pixelOrder[j]; pixelOrder[j] = tmp;
+        }
+
+        // For each watermark bit, modulate chipsPerBit pixels with PN noise.
+        Random noiseRng = new Random(key + 12345);
+        int pixIdx = 0;
+        for (int b = 0; b < wmSize; b++) {
+            double sign = (wmBits[b] == 1) ? 1.0 : -1.0;
+            for (int c = 0; c < chipsPerBit && pixIdx < totalPixels; c++, pixIdx++) {
+                int idx = pixelOrder[pixIdx];
+                int row = idx / cols;
+                int col = idx % cols;
+                double noise = noiseRng.nextGaussian();
+                double val = channel.get(row, col) + sign * alpha * noise;
+                channel.set(row, col, Math.max(0, Math.min(255, val)));
+            }
+        }
+
+        // multiInsert: repeat embedding with remaining pixels
+        if (multiInsert) {
+            while (pixIdx + chipsPerBit <= totalPixels) {
+                int b = (pixIdx / chipsPerBit) % wmSize;
+                double sign = (wmBits[b] == 1) ? 1.0 : -1.0;
+                for (int c = 0; c < chipsPerBit && pixIdx < totalPixels; c++, pixIdx++) {
+                    int idx = pixelOrder[pixIdx];
+                    int row = idx / cols;
+                    int col = idx % cols;
+                    double noise = noiseRng.nextGaussian();
+                    double val = channel.get(row, col) + sign * alpha * noise;
+                    channel.set(row, col, Math.max(0, Math.min(255, val)));
+                }
+            }
+        }
+    }
+
+    // Extract watermark by correlating with the same PN sequence.
+    public static BufferedImage extract(Matrix channel, int wmWidth, int wmHeight,
+                                        double alpha, int key, boolean multiInsert) {
+        int rows = channel.getRowDimension();
+        int cols = channel.getColumnDimension();
+        int totalPixels = rows * cols;
+        int wmSize = wmWidth * wmHeight;
+
+        int chipsPerBit = totalPixels / wmSize;
+        if (chipsPerBit < 1) chipsPerBit = 1;
+
+        Random rng = new Random(key);
+        int[] pixelOrder = new int[totalPixels];
+        for (int i = 0; i < totalPixels; i++) pixelOrder[i] = i;
+        for (int i = totalPixels - 1; i > 0; i--) {
+            int j = rng.nextInt(i + 1);
+            int tmp = pixelOrder[i]; pixelOrder[i] = pixelOrder[j]; pixelOrder[j] = tmp;
+        }
+
+        double[] correlation = new double[wmSize];
+        int[] count = new int[wmSize];
+
+        Random noiseRng = new Random(key + 12345);
+        int pixIdx = 0;
+
+        int totalChips = multiInsert ? totalPixels : wmSize * chipsPerBit;
+        totalChips = Math.min(totalChips, totalPixels);
+
+        for (int p = 0; p < totalChips; p++, pixIdx++) {
+            if (pixIdx >= totalPixels) break;
+            int b = (p / chipsPerBit) % wmSize;
+            int idx = pixelOrder[pixIdx];
+            int row = idx / cols;
+            int col = idx % cols;
+            double noise = noiseRng.nextGaussian();
+            correlation[b] += channel.get(row, col) * noise;
+            count[b]++;
+        }
+
+        // Build output image.
+        BufferedImage result = new BufferedImage(wmWidth, wmHeight, BufferedImage.TYPE_BYTE_GRAY);
+        for (int y = 0; y < wmHeight; y++) {
+            for (int x = 0; x < wmWidth; x++) {
+                int b = y * wmWidth + x;
+                int bit = (b < wmSize && correlation[b] > 0) ? 1 : 0;
+                int val = (bit == 1) ? 255 : 0;
+                result.setRGB(x, y, (val << 16) | (val << 8) | val);
+            }
+        }
+        return result;
+    }
+
+    private static int[] binarize(BufferedImage watermark) {
+        int w = watermark.getWidth(), h = watermark.getHeight();
+        int[] bits = new int[w * h];
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                bits[y * w + x] = ((watermark.getRGB(x, y) & 0xFF) > 128) ? 1 : 0;
+        return bits;
+    }
+}
