@@ -1,5 +1,7 @@
 package watermark;
 
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 
 import Jama.Matrix;
@@ -9,6 +11,24 @@ import jpeg.Transform;
 // DCT-domain watermarking -- hides a binary watermark by tweaking pairs of
 // frequency coefficients in each DCT block.
 public class DctWatermark {
+
+    // Returns the maximum watermark dimensions that fit in the given channel
+    // with the given block size. One block = one bit, so max pixels = blocksInRow * blocksInCol.
+    public static int[] maxWatermarkSize(int channelRows, int channelCols, int blockSize) {
+        int blocksInRow = channelCols / blockSize;
+        int blocksInCol = channelRows / blockSize;
+        return new int[]{ blocksInRow, blocksInCol };
+    }
+
+    // Resizes an image using bilinear interpolation.
+    private static BufferedImage resizeImage(BufferedImage src, int w, int h) {
+        BufferedImage dst = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY);
+        Graphics2D g = dst.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(src, 0, 0, w, h, null);
+        g.dispose();
+        return dst;
+    }
 
     // Embeds the watermark into a single channel (usually Y) by swapping DCT coefficients.
     // channel: Matrix(height, width) -- gets modified in-place.
@@ -26,6 +46,12 @@ public class DctWatermark {
                              int u1, int v1, int u2, int v2, double h, boolean multiInsert) {
         int rows = channel.getRowDimension();
         int cols = channel.getColumnDimension();
+
+        // Auto-resize watermark if it has more bits than available blocks.
+        int[] maxSize = maxWatermarkSize(rows, cols, blockSize);
+        if (watermark.getWidth() > maxSize[0] || watermark.getHeight() > maxSize[1]) {
+            watermark = resizeImage(watermark, maxSize[0], maxSize[1]);
+        }
 
         // Binarize watermark.
         int wmW = watermark.getWidth();

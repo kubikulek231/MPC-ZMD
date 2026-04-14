@@ -28,6 +28,29 @@ import Jama.Matrix;
 // localized attacks (crop, noise) but sensitive to geometric attacks (rotation, resize).
 public class SpreadSpectrumWatermark {
 
+    // Need at least this many pixels per watermark bit for the correlation to work.
+    // With fewer chips, the original pixel values drown out the watermark signal.
+    private static final int MIN_CHIPS_PER_BIT = 64;
+
+    // Returns max watermark dimensions for the given channel size.
+    public static int[] maxWatermarkSize(int channelRows, int channelCols) {
+        int totalPixels = channelRows * channelCols;
+        int maxBits = totalPixels / MIN_CHIPS_PER_BIT;
+        if (maxBits < 1) maxBits = 1;
+        int side = (int) Math.sqrt(maxBits);
+        return new int[]{ side, side };
+    }
+
+    private static BufferedImage resizeImage(BufferedImage src, int w, int h) {
+        BufferedImage dst = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY);
+        java.awt.Graphics2D g = dst.createGraphics();
+        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                           java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(src, 0, 0, w, h, null);
+        g.dispose();
+        return dst;
+    }
+
     // Embed watermark into a channel (Y recommended).
     // alpha: embedding strength -- higher = more robust but more visible. Try 5-30.
     // key: seed for the pseudo-random chip sequence.
@@ -35,6 +58,12 @@ public class SpreadSpectrumWatermark {
         int rows = channel.getRowDimension();
         int cols = channel.getColumnDimension();
         int totalPixels = rows * cols;
+
+        // Auto-resize if watermark is too large for meaningful spreading.
+        int[] maxWm = maxWatermarkSize(rows, cols);
+        if (watermark.getWidth() > maxWm[0] || watermark.getHeight() > maxWm[1]) {
+            watermark = resizeImage(watermark, maxWm[0], maxWm[1]);
+        }
 
         int[] wmBits = binarize(watermark);
         int wmSize = wmBits.length;

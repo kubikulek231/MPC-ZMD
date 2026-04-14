@@ -31,11 +31,37 @@ public class PatchworkWatermark {
     // Pixels per patch set (A and B) for each watermark bit.
     private static final int PATCH_SIZE = 50;
 
+    // Returns max watermark dimensions for the given channel size.
+    // We need 2*PATCH_SIZE pixels per bit (set A + set B).
+    public static int[] maxWatermarkSize(int channelRows, int channelCols) {
+        int totalPixels = channelRows * channelCols;
+        int maxBits = totalPixels / (2 * PATCH_SIZE);
+        if (maxBits < 1) maxBits = 1;
+        int side = (int) Math.sqrt(maxBits);
+        return new int[]{ side, side };
+    }
+
+    private static BufferedImage resizeImage(BufferedImage src, int w, int h) {
+        BufferedImage dst = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY);
+        java.awt.Graphics2D g = dst.createGraphics();
+        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                           java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(src, 0, 0, w, h, null);
+        g.dispose();
+        return dst;
+    }
+
     // Embed watermark into a channel (Y recommended).
     public static void embed(Matrix channel, BufferedImage watermark, double delta, int key, boolean multiInsert) {
         int rows = channel.getRowDimension();
         int cols = channel.getColumnDimension();
         int totalPixels = rows * cols;
+
+        // Auto-resize if watermark is too large for meaningful patching.
+        int[] maxWm = maxWatermarkSize(rows, cols);
+        if (watermark.getWidth() > maxWm[0] || watermark.getHeight() > maxWm[1]) {
+            watermark = resizeImage(watermark, maxWm[0], maxWm[1]);
+        }
 
         int[] wmBits = binarize(watermark);
         int wmSize = wmBits.length;

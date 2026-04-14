@@ -158,10 +158,21 @@ public class MainWindowController implements Initializable {
         dctBlockSvf.setValue(8);
         wmDctBlock.setValueFactory(dctBlockSvf);
 
-        wmDctU1.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 63, 3));
-        wmDctV1.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 63, 1));
-        wmDctU2.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 63, 4));
-        wmDctV2.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 63, 1));
+        wmDctU1.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 7, 3));
+        wmDctV1.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 7, 4));
+        wmDctU2.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 7, 4));
+        wmDctV2.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 7, 3));
+
+        // When block size changes, clamp the coefficient spinners to 0..(block-1).
+        wmDctBlock.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == null) return;
+            int max = newVal - 1;
+            for (Spinner<Integer> s : new Spinner[]{ wmDctU1, wmDctV1, wmDctU2, wmDctV2 }) {
+                SpinnerValueFactory.IntegerSpinnerValueFactory f = (SpinnerValueFactory.IntegerSpinnerValueFactory) s.getValueFactory();
+                f.setMax(max);
+                if (s.getValue() > max) f.setValue(max);
+            }
+        });
 
         // Make editable spinners commit typed values on focus loss.
         for (Spinner<?> s : new Spinner<?>[]{ wmLsbBitPlane, wmLsbStrength, wmDctU1, wmDctV1, wmDctU2, wmDctV2 }) {
@@ -647,13 +658,25 @@ public class MainWindowController implements Initializable {
         int block = wmDctBlock.getValue();
         int u1 = wmDctU1.getValue(), v1 = wmDctV1.getValue();
         int u2 = wmDctU2.getValue(), v2 = wmDctV2.getValue();
+        if (u1 >= block || v1 >= block || u2 >= block || v2 >= block) {
+            new Alert(AlertType.WARNING, "Coefficient positions must be less than block size (" + block + "). Current: (" + u1 + "," + v1 + ") and (" + u2 + "," + v2 + ").").showAndWait();
+            return;
+        }
         double depth = Double.parseDouble(wmDctDepth.getText());
         boolean multi = wmMultiInsert.isSelected();
         Matrix yChannel = process.getWorkingYCbCr().getY();
+
+        int[] maxWm = DctWatermark.maxWatermarkSize(yChannel.getRowDimension(), yChannel.getColumnDimension(), block);
+        String sizeNote = "";
+        if (watermarkImage.getWidth() > maxWm[0] || watermarkImage.getHeight() > maxWm[1]) {
+            sizeNote = "\nWatermark was auto-resized from " + watermarkImage.getWidth() + "x" + watermarkImage.getHeight()
+                     + " to " + maxWm[0] + "x" + maxWm[1] + " to fit available blocks.";
+        }
+
         DctWatermark.embed(yChannel, watermarkImage, block, u1, v1, u2, v2, depth, multi);
         dctEmbedded = true;
         updateWatermarkControls();
-        new Alert(AlertType.INFORMATION, "DCT watermark embedded into Y channel.").showAndWait();
+        new Alert(AlertType.INFORMATION, "DCT watermark embedded into Y channel." + sizeNote).showAndWait();
     }
 
     public void dctExtract() {
@@ -662,11 +685,21 @@ public class MainWindowController implements Initializable {
         int block = wmDctBlock.getValue();
         int u1 = wmDctU1.getValue(), v1 = wmDctV1.getValue();
         int u2 = wmDctU2.getValue(), v2 = wmDctV2.getValue();
+        if (u1 >= block || v1 >= block || u2 >= block || v2 >= block) {
+            new Alert(AlertType.WARNING, "Coefficient positions must be less than block size (" + block + "). Current: (" + u1 + "," + v1 + ") and (" + u2 + "," + v2 + ").").showAndWait();
+            return;
+        }
         boolean multi = wmMultiInsert.isSelected();
         Matrix yChannel = process.getWorkingYCbCr().getY();
-        extractedWatermark = DctWatermark.extract(yChannel, watermarkImage.getWidth(), watermarkImage.getHeight(), block, u1, v1, u2, v2, multi);
+
+        // Use the same capped dimensions as embed so extraction matches.
+        int[] maxWm = DctWatermark.maxWatermarkSize(yChannel.getRowDimension(), yChannel.getColumnDimension(), block);
+        int wmW = Math.min(watermarkImage.getWidth(), maxWm[0]);
+        int wmH = Math.min(watermarkImage.getHeight(), maxWm[1]);
+
+        extractedWatermark = DctWatermark.extract(yChannel, wmW, wmH, block, u1, v1, u2, v2, multi);
         updateWatermarkControls();
-        Dialogs.showImageInWindow(extractedWatermark, "Extracted DCT Watermark");
+        Dialogs.showImageInWindow(extractedWatermark, "Extracted DCT Watermark (" + wmW + "x" + wmH + ")");
     }
 
     // ===== Spread Spectrum Handlers =====
@@ -678,10 +711,18 @@ public class MainWindowController implements Initializable {
         int key = Integer.parseInt(wmSsKey.getText());
         boolean multi = wmMultiInsert.isSelected();
         Matrix yChannel = process.getWorkingYCbCr().getY();
+
+        int[] maxWm = SpreadSpectrumWatermark.maxWatermarkSize(yChannel.getRowDimension(), yChannel.getColumnDimension());
+        String sizeNote = "";
+        if (watermarkImage.getWidth() > maxWm[0] || watermarkImage.getHeight() > maxWm[1]) {
+            sizeNote = "\nWatermark was auto-resized from " + watermarkImage.getWidth() + "x" + watermarkImage.getHeight()
+                     + " to " + maxWm[0] + "x" + maxWm[1] + " (need enough pixels per bit for spreading).";
+        }
+
         SpreadSpectrumWatermark.embed(yChannel, watermarkImage, alpha, key, multi);
         ssEmbedded = true;
         updateWatermarkControls();
-        new Alert(AlertType.INFORMATION, "Spread Spectrum watermark embedded into Y channel (alpha=" + alpha + ").").showAndWait();
+        new Alert(AlertType.INFORMATION, "Spread Spectrum watermark embedded into Y channel (alpha=" + alpha + ")." + sizeNote).showAndWait();
     }
 
     public void ssExtract() {
@@ -691,9 +732,14 @@ public class MainWindowController implements Initializable {
         int key = Integer.parseInt(wmSsKey.getText());
         boolean multi = wmMultiInsert.isSelected();
         Matrix yChannel = process.getWorkingYCbCr().getY();
-        extractedWatermark = SpreadSpectrumWatermark.extract(yChannel, watermarkImage.getWidth(), watermarkImage.getHeight(), alpha, key, multi);
+
+        int[] maxWm = SpreadSpectrumWatermark.maxWatermarkSize(yChannel.getRowDimension(), yChannel.getColumnDimension());
+        int wmW = Math.min(watermarkImage.getWidth(), maxWm[0]);
+        int wmH = Math.min(watermarkImage.getHeight(), maxWm[1]);
+
+        extractedWatermark = SpreadSpectrumWatermark.extract(yChannel, wmW, wmH, alpha, key, multi);
         updateWatermarkControls();
-        Dialogs.showImageInWindow(extractedWatermark, "Extracted Spread Spectrum Watermark");
+        Dialogs.showImageInWindow(extractedWatermark, "Extracted SS Watermark (" + wmW + "x" + wmH + ")");
     }
 
     // ===== Patchwork Handlers =====
@@ -705,10 +751,18 @@ public class MainWindowController implements Initializable {
         int key = Integer.parseInt(wmPwKey.getText());
         boolean multi = wmMultiInsert.isSelected();
         Matrix yChannel = process.getWorkingYCbCr().getY();
+
+        int[] maxWm = PatchworkWatermark.maxWatermarkSize(yChannel.getRowDimension(), yChannel.getColumnDimension());
+        String sizeNote = "";
+        if (watermarkImage.getWidth() > maxWm[0] || watermarkImage.getHeight() > maxWm[1]) {
+            sizeNote = "\nWatermark was auto-resized from " + watermarkImage.getWidth() + "x" + watermarkImage.getHeight()
+                     + " to " + maxWm[0] + "x" + maxWm[1] + " (need enough pixels per patch).";
+        }
+
         PatchworkWatermark.embed(yChannel, watermarkImage, delta, key, multi);
         pwEmbedded = true;
         updateWatermarkControls();
-        new Alert(AlertType.INFORMATION, "Patchwork watermark embedded into Y channel (delta=" + delta + ").").showAndWait();
+        new Alert(AlertType.INFORMATION, "Patchwork watermark embedded into Y channel (delta=" + delta + ")." + sizeNote).showAndWait();
     }
 
     public void pwExtract() {
@@ -718,9 +772,14 @@ public class MainWindowController implements Initializable {
         int key = Integer.parseInt(wmPwKey.getText());
         boolean multi = wmMultiInsert.isSelected();
         Matrix yChannel = process.getWorkingYCbCr().getY();
-        extractedWatermark = PatchworkWatermark.extract(yChannel, watermarkImage.getWidth(), watermarkImage.getHeight(), delta, key, multi);
+
+        int[] maxWm = PatchworkWatermark.maxWatermarkSize(yChannel.getRowDimension(), yChannel.getColumnDimension());
+        int wmW = Math.min(watermarkImage.getWidth(), maxWm[0]);
+        int wmH = Math.min(watermarkImage.getHeight(), maxWm[1]);
+
+        extractedWatermark = PatchworkWatermark.extract(yChannel, wmW, wmH, delta, key, multi);
         updateWatermarkControls();
-        Dialogs.showImageInWindow(extractedWatermark, "Extracted Patchwork Watermark");
+        Dialogs.showImageInWindow(extractedWatermark, "Extracted PW Watermark (" + wmW + "x" + wmH + ")");
     }
 
     // ===== Attack Handlers =====

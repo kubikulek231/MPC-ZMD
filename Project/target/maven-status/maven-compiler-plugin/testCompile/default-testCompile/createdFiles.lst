@@ -1,5 +1,6 @@
-tests\QualityTest.class
+tests\DctWatermarkTest.class
 tests\QuantizationTest.class
 tests\ColorTransformTest.class
 tests\TransformTest.class
 tests\SamplingTest.class
+tests\QualityTest.class
